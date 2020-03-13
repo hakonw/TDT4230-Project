@@ -19,6 +19,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include "utilities/imageLoader.hpp"
+#include "ship.h"
 
 enum KeyFrameAction {
     BOTTOM, TOP
@@ -39,6 +40,10 @@ SceneNode* padNode;
 SceneNode* ballLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
+
+#define NUM_BOTS 10
+std::vector <SceneNode*> bots;
+SceneNode* botsTeamA;
 
 
 // I am mostly lazy
@@ -147,6 +152,19 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     rootNode->children.push_back(padNode);
     rootNode->children.push_back(ballNode);
 
+
+    botsTeamA = createSceneNode();
+    botsTeamA->nodeType = GROUP;
+    rootNode->children.push_back(botsTeamA);
+
+
+    for (int i=0; i<NUM_BOTS; i++) {
+        SceneNode* node = createSceneNode();
+        generateShipNode(node); // TODO fix to generate instead of writing to pointer
+        bots.push_back(node);
+        botsTeamA->children.push_back(node);
+    }
+
     // Lights
     // task 1a
     ballLightNode = createSceneNode();
@@ -244,6 +262,11 @@ void updateFrame(GLFWwindow* window) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     double timeDelta = getTimeDeltaSeconds();
+
+    printNode(ballNode);
+    for (unsigned int i=0; i < botsTeamA->children.size(); i++) {
+        updateShipPosition(botsTeamA->children.at(i), timeDelta);
+    }
 
     const float ballBottomY = boxNode->position.y - (boxDimensions.y/2) + ballRadius + padDimensions.y;
     const float ballTopY    = boxNode->position.y + (boxDimensions.y/2) - ballRadius;
@@ -469,6 +492,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
             }
             break;
         case SPOT_LIGHT: break;
+        case GROUP: break;
     }
 
     for(SceneNode* child : node->children) {
@@ -511,6 +535,7 @@ void renderNode(SceneNode* node) {
             break;
         case POINT_LIGHT: break;
         case SPOT_LIGHT: break;
+        case GROUP: break;
     }
 
     for(SceneNode* child : node->children) {

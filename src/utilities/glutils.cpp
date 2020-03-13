@@ -69,7 +69,7 @@ unsigned int generateBuffer(Mesh &mesh) {
 
     generateAttribute(0, 3, mesh.vertices, false);
     generateAttribute(1, 3, mesh.normals, true);
-    if (mesh.textureCoordinates.size() > 0) {
+    if (!mesh.textureCoordinates.empty()) {
         generateAttribute(2, 2, mesh.textureCoordinates, false);
 
         std::vector<glm::vec3> tangents;
