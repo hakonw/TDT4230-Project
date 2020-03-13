@@ -19,7 +19,6 @@
 #include <glm/gtx/transform.hpp>
 
 #include "utilities/imageLoader.hpp"
-#include "utilities/glfont.h"
 
 enum KeyFrameAction {
     BOTTOM, TOP
@@ -459,6 +458,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
 
     switch(node->nodeType) {
         case GEOMETRY: break;
+        case GEOMETRY_NORMAL_MAPPED: break;
         case POINT_LIGHT:
             {
                 glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
