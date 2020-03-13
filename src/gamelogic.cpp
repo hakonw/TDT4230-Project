@@ -40,7 +40,6 @@ SceneNode* padNode;
 SceneNode* ballLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
-SceneNode* textNode;
 
 
 // I am mostly lazy
@@ -48,17 +47,6 @@ unsigned int getTextureID(PNGImage* img);
 void renderNode(SceneNode* node);
 
 #define NUM_POINT_LIGHTS 3
-// 3a
-// I didnt need this
-/*struct PointLight {
-    glm::vec3 position;
-
-    glm::vec3 ambientColor;
-    glm::vec3 diffuseColor;
-    glm::vec3 specularColor;
-};
-PointLight pointLights[NUM_POINT_LIGHTS];
-*/
 
 double ballRadius = 3.0f;
 
@@ -217,26 +205,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     ballNode->VAOIndexCount = sphere.indices.size();
 
 
-    // Assigment2  1b and 1g
-    PNGImage charmap = loadPNGFile("../res/textures/charmap.png");
-    float charWidth = (float(charmap.width)/128.0f);
-    float charHeightOverWidth = float(charmap.height)/charWidth; // ratio of an individual characters height over its width
-
-    std::string textValue = "I want to kahoot myself. Yeeeeeeeeeeeeeeeeeeeeeet";
-    Mesh textMesh = generateTextGeometryBuffer(textValue, charHeightOverWidth, textValue.length() * charWidth);
-    unsigned int textVAO = generateBuffer(textMesh);
-    unsigned int textTextureID = getTextureID(&charmap);
-    std::cout << textTextureID << std::endl;
-
-    // A2 1h
-    textNode = createSceneNode();
-    textNode->nodeType = GEOMETRY_2D;
-    textNode->vertexArrayObjectID = textVAO;
-    textNode->VAOIndexCount = textMesh.indices.size();
-    textNode->textureID = textTextureID;
-    textNode->position = glm::vec3(0.0f);
-    rootNode->children.push_back(textNode);
-
     // Task 3 b
     PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
     PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
@@ -257,7 +225,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     std::cout << "Ready. Click to start!" << std::endl;
 }
 
-// TODO possible &img
 // Assigment 2 task 1c, 1d
 unsigned int getTextureID(PNGImage* img) {
     unsigned int textureID;
@@ -460,7 +427,6 @@ void updateFrame(GLFWwindow* window) {
     updateNodeTransformations(rootNode, VP, glm::mat4(1.0f));
     // 1c
     //glUniform3fv(7, NUM_POINT_LIGHTS, glm::value_ptr(pointLightPositions[0]));
-    //glUniform1dv(7, 1, &timeDelta);  // Used for generating random noise
 }
 
 void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transformationThusFar) {
@@ -495,11 +461,8 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
         case GEOMETRY: break;
         case POINT_LIGHT:
             {
-                // 1c
-                // 4x4 * 4x1 -> 4x1
                 glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
                 glm::vec3 pos3 = glm::vec3(pos)/pos.w;  // Correct the length
-                //pointLightPositions[node->lightSourceID] = glm::vec3(pos)/pos.w;
                 std::string uniformname = fmt::format("pointLights[{}].position", node->lightSourceID);
                 GLint location = shader->getUniformFromName(uniformname);
                 glUniform3fv(location, 1, glm::value_ptr(pos3));
@@ -510,7 +473,6 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
 
     for(SceneNode* child : node->children) {
         updateNodeTransformations(child, VP, node->currentModelTransformationMatrix);
-        //updateNodeTransformations(child, VP, node->currentTransformationMatrix);
     }
 }
 
@@ -549,29 +511,6 @@ void renderNode(SceneNode* node) {
             break;
         case POINT_LIGHT: break;
         case SPOT_LIGHT: break;
-        case GEOMETRY_2D:
-            {
-                //std::cout << node->vertexArrayObjectID << std::endl;
-                glUniform1i(6, 1); // Enable 2d drawing
-                //glDisable(GL_DEPTH_TEST);
-
-                glm::mat4 orthoProj = glm::ortho(0.0f, float(windowWidth), 0.0f, float(windowHeight));
-                glm::mat4 newMVP = orthoProj * node->currentModelTransformationMatrix; // M Ortho
-                glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(newMVP));
-
-                glBindTextureUnit(0, node->textureID);
-
-                if(node->vertexArrayObjectID != -1) {
-                    glBindVertexArray(node->vertexArrayObjectID);
-                    glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
-                } else {
-                    std::cout << "Bad" << std::endl;
-                }
-                //glEnable(GL_DEPTH_TEST);
-                glUniform1i(6, 0); // Disable 2d drawing
-
-            }
-            break;
     }
 
     for(SceneNode* child : node->children) {
@@ -585,5 +524,4 @@ void renderFrame(GLFWwindow* window) {
     glViewport(0.0f, 0.0f, float(windowWidth), float(windowHeight));
 
     renderNode(rootNode);
-    renderNode(textNode);
 }

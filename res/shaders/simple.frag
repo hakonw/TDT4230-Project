@@ -1,5 +1,5 @@
-#version 420 core
-#extension GL_ARB_explicit_uniform_location : require
+#version 430 core
+//#extension GL_ARB_explicit_uniform_location : require
 
 in layout(location = 0) vec3 normalUniform;
 in layout(location = 1) vec2 textureCoordinates;
@@ -10,9 +10,6 @@ in layout(location = 4) mat3 tbn;
 uniform layout(location = 10) vec3 cameraPos;
 uniform layout(location = 11) vec3 ballPos; // 2c
 float ballRadius = 3.0f; // 2c
-
-uniform layout(location = 6) int is2dGeo;
-uniform layout(binding = 0) sampler2D samplerText;
 
 uniform layout(location = 7) int useTexture;
 uniform layout(binding = 1) sampler2D samplerTexture;
@@ -84,57 +81,53 @@ vec3 reject(vec3 from, vec3 onto) {
 void main()
 {
 
-    if (is2dGeo == 1) {
-        //color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
-        color = texture(samplerText, textureCoordinates);
-    } else {
-        // TODO hvorfor må man også normalize den på starten av fragment shader?
-        vec3 normal = normalUniform;
+    // TODO hvorfor må man også normalize den på starten av fragment shader?
+    vec3 normal = normalUniform;
 
-        if (useNormalMap == 1) {
-            vec3 n = texture(samplerNormal, textureCoordinates).xyz;
-            n = (n*2.0f) - 1;
-            n = tbn * n;
-            normal = n;
-        }
-
-        vec3 norm = normalize(normal);
-        vec3 viewDir = normalize(cameraPos - fragPos);
-
-        vec3 result = vec3(0.0f);
-
-        // Calculate light from point lights
-        for (int i=0; i<NUM_POINT_LIGHTS; i++) {
-            vec3 lightVec = pointLights[i].position - fragPos;
-            vec3 lightDir = normalize(lightVec);
-
-            vec3 fragBallVec = ballPos - fragPos;
-            vec3 rejection = reject(fragBallVec, lightVec);
-
-            // Default behaviour: calculate light
-            float lightRatio = 1.0f; // A value that goes between 0 and 1, which "allows" light
-
-            // == -> lightratio = 1, reject < ballRadius -> shadow, reject > ball -> full light
-            // Formula: 1-x^2, for x in range 0-1
-            float rejectionLeftover = length(rejection) - ballRadius; // is negative when you are "inside" the ball
-
-            rejectionLeftover = min(rejectionLeftover, 0.0f); // used formula is symmetric
-            lightRatio = min(max(1.0f-(rejectionLeftover*rejectionLeftover), 0.0f), 1.0f); // 1 - x^2,  cap at [0, 1]
-            rejectionLeftover = max(rejectionLeftover, 1.0f);
-            if (length(lightVec) < length(fragBallVec)) lightRatio = 1.0f; // special case 1
-            if (dot(lightVec, fragBallVec) < 0) lightRatio = 1.0f; // special case 2
-
-            result += calcPointLight(pointLights[i], norm, fragPos, viewDir, lightDir, lightRatio);
-        }
-
-        color = vec4(result, 1.0f);
-
-        if (useTexture == 1) {
-            color = texture(samplerTexture, textureCoordinates) * color;
-            // To test
-            //color = vec4(tbn * (texture(samplerNormal, textureCoordinates).xyz * 2.0f - 1.0f), 1.0f);
-        }
+    if (useNormalMap == 1) {
+        vec3 n = texture(samplerNormal, textureCoordinates).xyz;
+        n = (n*2.0f) - 1;
+        n = tbn * n;
+        normal = n;
     }
+
+    vec3 norm = normalize(normal);
+    vec3 viewDir = normalize(cameraPos - fragPos);
+
+    vec3 result = vec3(0.0f);
+
+    // Calculate light from point lights
+    for (int i=0; i<NUM_POINT_LIGHTS; i++) {
+        vec3 lightVec = pointLights[i].position - fragPos;
+        vec3 lightDir = normalize(lightVec);
+
+        vec3 fragBallVec = ballPos - fragPos;
+        vec3 rejection = reject(fragBallVec, lightVec);
+
+        // Default behaviour: calculate light
+        float lightRatio = 1.0f; // A value that goes between 0 and 1, which "allows" light
+
+        // == -> lightratio = 1, reject < ballRadius -> shadow, reject > ball -> full light
+        // Formula: 1-x^2, for x in range 0-1
+        float rejectionLeftover = length(rejection) - ballRadius; // is negative when you are "inside" the ball
+
+        rejectionLeftover = min(rejectionLeftover, 0.0f); // used formula is symmetric
+        lightRatio = min(max(1.0f-(rejectionLeftover*rejectionLeftover), 0.0f), 1.0f); // 1 - x^2,  cap at [0, 1]
+        rejectionLeftover = max(rejectionLeftover, 1.0f);
+        if (length(lightVec) < length(fragBallVec)) lightRatio = 1.0f; // special case 1
+        if (dot(lightVec, fragBallVec) < 0) lightRatio = 1.0f; // special case 2
+
+        result += calcPointLight(pointLights[i], norm, fragPos, viewDir, lightDir, lightRatio);
+    }
+
+    color = vec4(result, 1.0f);
+
+    if (useTexture == 1) {
+        color = texture(samplerTexture, textureCoordinates) * color;
+        // To test
+        //color = vec4(tbn * (texture(samplerNormal, textureCoordinates).xyz * 2.0f - 1.0f), 1.0f);
+    }
+
     color = color + dither(textureCoordinates);
 
 }
