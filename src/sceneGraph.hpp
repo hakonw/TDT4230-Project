@@ -14,7 +14,7 @@
 #include <fstream>
 
 enum SceneNodeType {
-	GEOMETRY, POINT_LIGHT, SPOT_LIGHT
+	GEOMETRY, POINT_LIGHT, SPOT_LIGHT, GEOMETRY_2D, GEOMETRY_NORMAL_MAPPED
 };
 
 struct SceneNode {
@@ -43,6 +43,12 @@ struct SceneNode {
 	// A transformation matrix representing the transformation of the node's location relative to its parent. This matrix is updated every frame.
 	glm::mat4 currentTransformationMatrix;
 
+    // Model transformation
+    glm::mat4 currentModelTransformationMatrix;
+
+	// Normal matrix
+	glm::mat3 currentNormalMatrix;
+
 	// The location of the node's reference point
 	glm::vec3 referencePoint;
 
@@ -52,6 +58,14 @@ struct SceneNode {
 
 	// Node type is used to determine how to handle the contents of a node
 	SceneNodeType nodeType;
+
+	// OtherID, used for identifiying light
+    int lightSourceID;
+
+    // texture ID, Assigment 2 task 1h
+    unsigned int textureID;
+    unsigned int normalMapTextureID;
+    unsigned int roughnessMapID;
 };
 
 SceneNode* createSceneNode();

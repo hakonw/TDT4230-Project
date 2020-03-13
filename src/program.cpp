@@ -14,6 +14,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <utilities/timeutils.h>
 
+#define DEBUG 0
+#define printDebug(string) if (DEBUG) { fprintf(stderr, string); printGLError(); }
 
 void runProgram(GLFWwindow* window, CommandLineOptions options)
 {
@@ -26,6 +28,10 @@ void runProgram(GLFWwindow* window, CommandLineOptions options)
 
     // Disable built-in dithering
     glDisable(GL_DITHER);
+
+    // Enable transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Set default colour after clearing the colour buffer
     glClearColor(0.3f, 0.5f, 0.8f, 1.0f);
@@ -41,7 +47,8 @@ void runProgram(GLFWwindow* window, CommandLineOptions options)
 
         updateFrame(window);
         renderFrame(window);
-
+        printDebug("Post-render: ")
+        printGLError();
 
 
 

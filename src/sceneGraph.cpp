@@ -27,11 +27,12 @@ void printNode(SceneNode* node) {
 		"    Location: (%f, %f, %f)\n"
 		"    Reference point: (%f, %f, %f)\n"
 		"    VAO ID: %i\n"
+        "    Type: %i\n"
 		"}\n",
 		int(node->children.size()),
 		node->rotation.x, node->rotation.y, node->rotation.z,
 		node->position.x, node->position.y, node->position.z,
 		node->referencePoint.x, node->referencePoint.y, node->referencePoint.z, 
-		node->vertexArrayObjectID);
+		node->vertexArrayObjectID, node->nodeType);
 }
 

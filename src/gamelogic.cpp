@@ -18,6 +18,9 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 
+#include "utilities/imageLoader.hpp"
+#include "utilities/glfont.h"
+
 enum KeyFrameAction {
     BOTTOM, TOP
 };
@@ -34,6 +37,28 @@ SceneNode* rootNode;
 SceneNode* boxNode;
 SceneNode* ballNode;
 SceneNode* padNode;
+SceneNode* ballLightNode;
+SceneNode* staticLightNode;
+SceneNode* padLightNode;
+SceneNode* textNode;
+
+
+// I am mostly lazy
+unsigned int getTextureID(PNGImage* img);
+void renderNode(SceneNode* node);
+
+#define NUM_POINT_LIGHTS 3
+// 3a
+// I didnt need this
+/*struct PointLight {
+    glm::vec3 position;
+
+    glm::vec3 ambientColor;
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
+};
+PointLight pointLights[NUM_POINT_LIGHTS];
+*/
 
 double ballRadius = 3.0f;
 
@@ -87,6 +112,13 @@ void mouseCallback(GLFWwindow* window, double x, double y) {
     glfwSetCursorPos(window, windowWidth / 2, windowHeight / 2);
 }
 
+
+void placeLight3fvVal(int id, std::string field, glm::vec3 v3) {
+    std::string uniformname = fmt::format("pointLights[{}].{}", id, field);
+    GLint location = shader->getUniformFromName(uniformname);
+    glUniform3fv(location, 1, glm::value_ptr(v3));
+}
+
 //// A few lines to help you if you've never used c++ structs
 // struct LightSource {
 //     bool a_placeholder_value;
@@ -128,8 +160,55 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     rootNode->children.push_back(padNode);
     rootNode->children.push_back(ballNode);
 
+    // Lights
+    // task 1a
+    ballLightNode = createSceneNode();
+    padLightNode = createSceneNode();
+    staticLightNode = createSceneNode();
+
+    ballLightNode->nodeType = SceneNodeType::POINT_LIGHT;
+    ballLightNode->lightSourceID = 0;
+    ballLightNode->position = glm::vec3(0.0f, ballRadius*1.01f, 0.0f);
+    //ballLightNode->position = glm::vec3(-5.0f, 0.0f, -1.0f);
+
+    padLightNode->nodeType = SceneNodeType::POINT_LIGHT;
+    padLightNode->lightSourceID = 1;
+    padLightNode->position = glm::vec3(0.0f, 0.0f, -1.0f);
+
+    staticLightNode->nodeType = SceneNodeType::POINT_LIGHT;
+    staticLightNode->lightSourceID = 2;
+    staticLightNode->position = glm::vec3(5.0f, 0.0f, -1.0f);
+
+    // From task 1, where each light had to be at a different place
+    ballNode->children.push_back(ballLightNode);
+    padNode->children.push_back(ballLightNode);
+    padNode->children.push_back(padLightNode);
+    //rootNode->children.push_back(staticLightNode);
+    padNode->children.push_back(staticLightNode);
+
+    //3b Select node colors
+    glm::vec3 c;
+    c = glm::vec3(0.2f, 0.0f, 0.0f);
+    c = glm::vec3(0.7f, 0.7f, 0.7f);
+    placeLight3fvVal(ballLightNode->lightSourceID, "ambientColor", c);
+    placeLight3fvVal(ballLightNode->lightSourceID, "diffuseColor", c);
+    placeLight3fvVal(ballLightNode->lightSourceID, "specularColor", c);
+
+    c = glm::vec3(0.0f, 0.0f, 0.2f);
+    placeLight3fvVal(padLightNode->lightSourceID, "ambientColor", c);
+    placeLight3fvVal(padLightNode->lightSourceID, "diffuseColor", c);
+    placeLight3fvVal(padLightNode->lightSourceID, "specularColor", c);
+
+    c = glm::vec3(0.0f, 0.2f, 0.0f);
+    placeLight3fvVal(staticLightNode->lightSourceID, "ambientColor", c);
+    placeLight3fvVal(staticLightNode->lightSourceID, "diffuseColor", c);
+    placeLight3fvVal(staticLightNode->lightSourceID, "specularColor", c);
+
+    // Back to skeleton
+
     boxNode->vertexArrayObjectID = boxVAO;
     boxNode->VAOIndexCount = box.indices.size();
+    boxNode->nodeType = GEOMETRY_NORMAL_MAPPED;
 
     padNode->vertexArrayObjectID = padVAO;
     padNode->VAOIndexCount = pad.indices.size();
@@ -138,8 +217,37 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     ballNode->VAOIndexCount = sphere.indices.size();
 
 
+    // Assigment2  1b and 1g
+    PNGImage charmap = loadPNGFile("../res/textures/charmap.png");
+    float charWidth = (float(charmap.width)/128.0f);
+    float charHeightOverWidth = float(charmap.height)/charWidth; // ratio of an individual characters height over its width
 
+    std::string textValue = "I want to kahoot myself. Yeeeeeeeeeeeeeeeeeeeeeet";
+    Mesh textMesh = generateTextGeometryBuffer(textValue, charHeightOverWidth, textValue.length() * charWidth);
+    unsigned int textVAO = generateBuffer(textMesh);
+    unsigned int textTextureID = getTextureID(&charmap);
+    std::cout << textTextureID << std::endl;
 
+    // A2 1h
+    textNode = createSceneNode();
+    textNode->nodeType = GEOMETRY_2D;
+    textNode->vertexArrayObjectID = textVAO;
+    textNode->VAOIndexCount = textMesh.indices.size();
+    textNode->textureID = textTextureID;
+    textNode->position = glm::vec3(0.0f);
+    rootNode->children.push_back(textNode);
+
+    // Task 3 b
+    PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
+    PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
+    PNGImage brickRoughMap = loadPNGFile("../res/textures/Brick03_rgh.png");
+    unsigned int brickTextureID = getTextureID(&brickTextureMap);
+    unsigned int brickNormalTextureID = getTextureID(&brickNormalMap);
+    unsigned int brickRoughMapID = getTextureID(&brickRoughMap);
+
+    boxNode->normalMapTextureID = brickNormalTextureID;
+    boxNode->textureID = brickTextureID;
+    boxNode->roughnessMapID = brickRoughMapID;
 
 
     getTimeDeltaSeconds();
@@ -149,7 +257,24 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     std::cout << "Ready. Click to start!" << std::endl;
 }
 
+// TODO possible &img
+// Assigment 2 task 1c, 1d
+unsigned int getTextureID(PNGImage* img) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels.data());
+
+    // Assugment 2 task 1e
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    return textureID;
+}
+
 void updateFrame(GLFWwindow* window) {
+
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     double timeDelta = getTimeDeltaSeconds();
@@ -330,14 +455,15 @@ void updateFrame(GLFWwindow* window) {
         boxNode->position.z - (boxDimensions.z/2) + (padDimensions.z/2) + (1 - padPositionZ) * (boxDimensions.z - padDimensions.z)
     };
 
-    updateNodeTransformations(rootNode, VP);
-
-
-
-
+    // update uniforms that doesnt change that often (once per draw)
+    glUniform3fv(10, 1, glm::value_ptr(cameraPosition));
+    updateNodeTransformations(rootNode, VP, glm::mat4(1.0f));
+    // 1c
+    //glUniform3fv(7, NUM_POINT_LIGHTS, glm::value_ptr(pointLightPositions[0]));
+    //glUniform1dv(7, 1, &timeDelta);  // Used for generating random noise
 }
 
-void updateNodeTransformations(SceneNode* node, glm::mat4 transformationThusFar) {
+void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transformationThusFar) {
     glm::mat4 transformationMatrix =
               glm::translate(node->position)
             * glm::translate(node->referencePoint)
@@ -347,31 +473,105 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 transformationThusFar)
             * glm::scale(node->scale)
             * glm::translate(-node->referencePoint);
 
-    node->currentTransformationMatrix = transformationThusFar * transformationMatrix;
+    // 1b, save the model projection
+    // Projection*View * Model
+    // node->currentTransformationMatrix = transformationThusFar * transformationMatrix;
+    node->currentModelTransformationMatrix = transformationThusFar * transformationMatrix; // M
+    node->currentTransformationMatrix = VP * node->currentModelTransformationMatrix; // MVP
+
+    // 1d
+    // Compute transpose of the inverse of the model matrix
+    // Take the mat3 out of it
+    // https://stackoverflow.com/questions/10879864/what-extractly-mat3a-mat4-matrix-statement-in-glsl-do
+    node->currentNormalMatrix = glm::mat3(glm::transpose(glm::inverse(node->currentModelTransformationMatrix)));
+
+    // push the ball node position to a uniform variable
+    if (node == ballNode) {
+        glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
+        glUniform3fv(11, 1, glm::value_ptr(pos));
+    }
 
     switch(node->nodeType) {
         case GEOMETRY: break;
-        case POINT_LIGHT: break;
+        case POINT_LIGHT:
+            {
+                // 1c
+                // 4x4 * 4x1 -> 4x1
+                glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
+                glm::vec3 pos3 = glm::vec3(pos)/pos.w;  // Correct the length
+                //pointLightPositions[node->lightSourceID] = glm::vec3(pos)/pos.w;
+                std::string uniformname = fmt::format("pointLights[{}].position", node->lightSourceID);
+                GLint location = shader->getUniformFromName(uniformname);
+                glUniform3fv(location, 1, glm::value_ptr(pos3));
+            }
+            break;
         case SPOT_LIGHT: break;
     }
 
     for(SceneNode* child : node->children) {
-        updateNodeTransformations(child, node->currentTransformationMatrix);
+        updateNodeTransformations(child, VP, node->currentModelTransformationMatrix);
+        //updateNodeTransformations(child, VP, node->currentTransformationMatrix);
     }
 }
 
 void renderNode(SceneNode* node) {
+    // MVP
     glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(node->currentTransformationMatrix));
+    // 1b  aka matrix M
+    glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(node->currentModelTransformationMatrix));
+    // 1d, pass normal matrix to the vertex shader
+    glUniformMatrix3fv(5, 1, GL_FALSE, glm::value_ptr(node->currentNormalMatrix));
 
     switch(node->nodeType) {
-        case GEOMETRY:
+    case GEOMETRY:
             if(node->vertexArrayObjectID != -1) {
                 glBindVertexArray(node->vertexArrayObjectID);
                 glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
             }
             break;
+        case GEOMETRY_NORMAL_MAPPED:
+            {
+                glUniform1i(7, 1); // useTexture
+                glUniform1i(8, 1); // useNormalMap
+                glUniform1i(9, 1); // useRoughnessMap
+                glBindTextureUnit(1, node->textureID);
+                glBindTextureUnit(2, node->normalMapTextureID);
+                glBindTextureUnit(3, node->roughnessMapID);
+
+                if(node->vertexArrayObjectID != -1) {
+                    glBindVertexArray(node->vertexArrayObjectID);
+                    glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+                }
+                glUniform1i(7, 0);
+                glUniform1i(8, 0);
+                glUniform1i(9, 0);
+            }
+            break;
         case POINT_LIGHT: break;
         case SPOT_LIGHT: break;
+        case GEOMETRY_2D:
+            {
+                //std::cout << node->vertexArrayObjectID << std::endl;
+                glUniform1i(6, 1); // Enable 2d drawing
+                //glDisable(GL_DEPTH_TEST);
+
+                glm::mat4 orthoProj = glm::ortho(0.0f, float(windowWidth), 0.0f, float(windowHeight));
+                glm::mat4 newMVP = orthoProj * node->currentModelTransformationMatrix; // M Ortho
+                glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(newMVP));
+
+                glBindTextureUnit(0, node->textureID);
+
+                if(node->vertexArrayObjectID != -1) {
+                    glBindVertexArray(node->vertexArrayObjectID);
+                    glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+                } else {
+                    std::cout << "Bad" << std::endl;
+                }
+                //glEnable(GL_DEPTH_TEST);
+                glUniform1i(6, 0); // Disable 2d drawing
+
+            }
+            break;
     }
 
     for(SceneNode* child : node->children) {
@@ -382,7 +582,8 @@ void renderNode(SceneNode* node) {
 void renderFrame(GLFWwindow* window) {
     int windowWidth, windowHeight;
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
-    glViewport(0, 0, windowWidth, windowHeight);
+    glViewport(0.0f, 0.0f, float(windowWidth), float(windowHeight));
 
     renderNode(rootNode);
+    renderNode(textNode);
 }

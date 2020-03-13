@@ -1,6 +1,10 @@
 # Prerequisites
 *.d
 
+.idea/
+cmake-build-debug/
+lib/glad/
+
 # Compiled Object files
 *.slo
 *.lo

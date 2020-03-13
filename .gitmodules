@@ -2,6 +2,7 @@
 	path = lib/glad
 	url = https://github.com/Dav1dde/glad.git
 	branch = c
+	ignore = untracked
 [submodule "lib/glfw"]
 	path = lib/glfw
 	url = https://github.com/glfw/glfw.git
