@@ -21,12 +21,15 @@
 #include "utilities/imageLoader.hpp"
 #include "ship.h"
 #include "ShipManager.h"
+#include "utilities/camera.hpp"
 
 enum KeyFrameAction {
     BOTTOM, TOP
 };
 
 #include <timestamps.h>
+
+Gloom::Camera camera;
 
 double padPositionX = 0;
 double padPositionZ = 0;
@@ -92,9 +95,11 @@ double lastMouseX = windowWidth / 2;
 double lastMouseY = windowHeight / 2;
 void mouseCallback(GLFWwindow* window, double x, double y) {
     int windowWidth, windowHeight;
+    camera.handleCursorPosInput(x, y);
+
+    /*
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
     glViewport(0, 0, windowWidth, windowHeight);
-
     double deltaX = x - lastMouseX;
     double deltaY = y - lastMouseY;
 
@@ -106,7 +111,7 @@ void mouseCallback(GLFWwindow* window, double x, double y) {
     if (padPositionZ > 1) padPositionZ = 1;
     if (padPositionZ < 0) padPositionZ = 0;
 
-    glfwSetCursorPos(window, windowWidth / 2, windowHeight / 2);
+    glfwSetCursorPos(window, windowWidth / 2, windowHeight / 2);*/
 }
 
 
@@ -115,12 +120,6 @@ void placeLight3fvVal(int id, std::string field, glm::vec3 v3) {
     GLint location = shader->getUniformFromName(uniformname);
     glUniform3fv(location, 1, glm::value_ptr(v3));
 }
-
-//// A few lines to help you if you've never used c++ structs
-// struct LightSource {
-//     bool a_placeholder_value;
-// };
-// LightSource lightSources[/*Put number of light sources you want here*/];
 
 void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     buffer = new sf::SoundBuffer();
@@ -358,7 +357,7 @@ void updateFrame(GLFWwindow* window) {
         mouseRightReleased = mouseRightPressed;
         mouseRightPressed = false;
     }
-    
+
     if(!hasStarted) {
         if (mouseLeftPressed) {
             if (options.enableMusic) {
@@ -485,14 +484,10 @@ void updateFrame(GLFWwindow* window) {
 
     glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
 
-    glm::vec3 cameraPosition = glm::vec3(0, 2, -20);
-
-    // Some math to make the camera move in a nice way
-    float lookRotation = -0.6 / (1 + exp(-5 * (padPositionX-0.5))) + 0.3;
-    glm::mat4 cameraTransform = 
-                    glm::rotate(0.3f + 0.2f * float(-padPositionZ*padPositionZ), glm::vec3(1, 0, 0)) *
-                    glm::rotate(lookRotation, glm::vec3(0, 1, 0)) *
-                    glm::translate(-cameraPosition);
+    // Move camera and calculate view matrix
+    camera.detectKeyboardInputs(window);
+    camera.updateCamera(timeDelta);
+    glm::mat4 cameraTransform = camera.getViewMatrix();
 
     glm::mat4 VP = projection * cameraTransform;
 
@@ -510,7 +505,7 @@ void updateFrame(GLFWwindow* window) {
     };
 
     // update uniforms that doesnt change that often (once per draw)
-    glUniform3fv(10, 1, glm::value_ptr(cameraPosition));
+    glUniform3fv(10, 1, glm::value_ptr(camera.getCameraPosition()));
     updateNodeTransformations(rootNode, VP, glm::mat4(1.0f));
     // 1c
     //glUniform3fv(7, NUM_POINT_LIGHTS, glm::value_ptr(pointLightPositions[0]));

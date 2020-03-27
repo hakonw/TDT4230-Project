@@ -15,13 +15,19 @@ namespace Gloom
     class Camera
     {
     public:
-        Camera(glm::vec3 position         = glm::vec3(0.0f, 0.0f, 2.0f),
-               GLfloat   movementSpeed    = 5.0f,
-               GLfloat   mouseSensitivity = 0.005f)
+        Camera(glm::vec3 position         = glm::vec3(0.0f, 2.0f, -20),
+               GLfloat   movementSpeed    = 20.0f,
+               GLfloat   mouseSensitivity = 0.001f,
+               GLfloat   movementSpeedModifierNormal = 1.0f,
+               GLfloat   movementSpeedModifierActive = 2.0f)
         {
             cPosition         = position;
             cMovementSpeed    = movementSpeed;
             cMouseSensitivity = mouseSensitivity;
+            cMovementSpeedModifier = movementSpeedModifierNormal;
+            cMovementSpeedModifierNormal = movementSpeedModifierNormal;
+            cMovementSpeedModifierActive = movementSpeedModifierActive;
+            assert(cMovementSpeedModifierNormal != cMovementSpeedModifierActive);
 
             // Set up the initial view matrix
             updateViewMatrix();
@@ -32,6 +38,15 @@ namespace Gloom
         /* Getter for the view matrix */
         glm::mat4 getViewMatrix() { return matView; }
 
+        /* Handle keyboard button presses */
+        std::vector<int> keys = {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, // WASD - Movement
+                                 GLFW_KEY_Q, GLFW_KEY_E, // Q E - Up/down
+                                 GLFW_KEY_LEFT_SHIFT, GLFW_KEY_G}; // "Sprint" and Gimbal-Lock
+        void detectKeyboardInputs(GLFWwindow* window) {
+            for (int key : keys) {
+                handleKeyboardInputs(key, glfwGetKey(window, key));
+            }
+        }
 
         /* Handle keyboard inputs from a callback mechanism */
         void handleKeyboardInputs(int key, int action)
@@ -41,11 +56,15 @@ namespace Gloom
             {
                 if (action == GLFW_PRESS)
                 {
-                    keysInUse[key] = true;
+                    if (keysCanToggle[key]) {
+                        keysInUse[key] = true;
+                    }
                 }
                 else if (action == GLFW_RELEASE)
                 {
                     keysInUse[key] = false;
+                    keysCanToggle[key] = true;
+
                 }
             }
         }
@@ -54,8 +73,6 @@ namespace Gloom
         /* Handle mouse button inputs from a callback mechanism */
         void handleMouseButtonInputs(int button, int action)
         {
-            // Ensure that the camera only rotates when the left mouse button is
-            // pressed
             if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
             {
                 isMousePressed = true;
@@ -71,10 +88,6 @@ namespace Gloom
         /* Handle cursor position from a callback mechanism */
         void handleCursorPosInput(double xpos, double ypos)
         {
-            // Do nothing if the left mouse button is not pressed
-            if (isMousePressed == false)
-                return;
-
             // There should be no movement when the mouse button is released
             if (resetMouse)
             {
@@ -84,8 +97,9 @@ namespace Gloom
             }
 
             // Keep track of pitch and yaw for the current frame
-            fYaw   = xpos - lastXPos;
-            fPitch = ypos - lastYPos;
+            fYaw   += xpos - lastXPos;
+            fPitch += ypos - lastYPos;
+            //printf("Yaw %f \n", fYaw);
 
             // Update last known cursor position
             lastXPos = xpos;
@@ -104,6 +118,24 @@ namespace Gloom
 
             // Alter position in the appropriate direction
             glm::vec3 fMovement(0.0f, 0.0f, 0.0f);
+
+            if (keysInUse[GLFW_KEY_LEFT_SHIFT]) { // Boost
+                if (cMovementSpeedModifier != cMovementSpeedModifierActive) {
+                    cMovementSpeedModifier = cMovementSpeedModifierActive;
+                }
+            } else {
+                if (cMovementSpeedModifier != cMovementSpeedModifierNormal) {
+                    cMovementSpeedModifier = cMovementSpeedModifierNormal;
+                }
+            }
+
+            if (keysInUse[GLFW_KEY_G]) { // Gimbal lock - toggle
+                // TODO https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions#Conversion_formulae_between_formalisms ?
+                keysInUse[GLFW_KEY_G] = false;
+                keysCanToggle[GLFW_KEY_G] = false;
+                gimbalLock = !gimbalLock;
+                printf("Toggle %i\n", gimbalLock);
+            }
 
             if (keysInUse[GLFW_KEY_W])  // forward
                 fMovement -= dirZ;
@@ -124,13 +156,17 @@ namespace Gloom
                 fMovement -= dirY;
 
             // Trick to balance PC speed with movement
-            GLfloat velocity = cMovementSpeed * deltaTime;
+            GLfloat velocity = cMovementSpeed * cMovementSpeedModifier * deltaTime;
 
             // Update camera position using the appropriate velocity
             cPosition += fMovement * velocity;
 
             // Update the view matrix based on the new information
             updateViewMatrix();
+        }
+
+        const glm::vec3 &getCameraPosition() const {
+            return cPosition;
         }
 
     private:
@@ -143,24 +179,45 @@ namespace Gloom
         /* Update the view matrix based on the current information */
         void updateViewMatrix()
         {
-            // Adjust cursor movement using the specified sensitivity
-            fPitch *= cMouseSensitivity;
-            fYaw   *= cMouseSensitivity;
+            glm::mat4 matRotation;
 
-            // Create quaternions given the current pitch and yaw
-            glm::quat qPitch = glm::quat(glm::vec3(fPitch, 0.0f, 0.0f));
-            glm::quat qYaw   = glm::quat(glm::vec3(0.0f, fYaw, 0.0f));
+            if (gimbalLock) {
+                // Adjust cursor movement using the specified sensitivity, but not overwrite current
+                GLfloat fPitch2 = fPitch  * cMouseSensitivity;
+                GLfloat fYaw2   = fYaw * cMouseSensitivity;
 
-            // Reset pitch and yaw values for the current rotation
-            fPitch = 0.0f;
-            fYaw   = 0.0f;
+                // Create quaternions given the current pitch and yaw
+                glm::quat qPitch = glm::quat(glm::vec3(fPitch2, 0.0f, 0.0f));
+                glm::quat qYaw   = glm::quat(glm::vec3(0.0f, fYaw2, 0.0f));
 
-            // Update camera quaternion and normalise
-            cQuaternion = qYaw * qPitch * cQuaternion;
-            cQuaternion = glm::normalize(cQuaternion);
+                qPitch = glm::normalize(qPitch);
+                qYaw = glm::normalize(qYaw);
 
-            // Build rotation matrix using the camera quaternion
-            glm::mat4 matRotation = glm::mat4_cast(cQuaternion);
+                // Do not use old quaterion, create a new mat4 based on only yaw and pitch
+                glm::mat4 yawMat = glm::mat4_cast(qYaw);
+                glm::mat4 pitchMat = glm::mat4_cast(qPitch);
+
+                matRotation = pitchMat * yawMat;
+            } else {
+                // Adjust cursor movement using the specified sensitivity
+                fPitch *= cMouseSensitivity;
+                fYaw   *= cMouseSensitivity;
+
+                // Create quaternions given the current pitch and yaw
+                glm::quat qPitch = glm::quat(glm::vec3(fPitch, 0.0f, 0.0f));
+                glm::quat qYaw   = glm::quat(glm::vec3(0.0f, fYaw, 0.0f));
+
+                // Reset pitch and yaw values for the current rotation
+                fPitch = 0.0f;
+                fYaw   = 0.0f;
+
+                // Update camera quaternion and normalise
+                cQuaternion = qYaw * qPitch * cQuaternion;
+                cQuaternion = glm::normalize(cQuaternion);
+
+                // Build rotation matrix using the camera quaternion
+                matRotation = glm::mat4_cast(cQuaternion);
+            }
 
             // Build translation matrix
             glm::mat4 matTranslate = glm::translate(glm::mat4(1.0f), -cPosition);
@@ -175,6 +232,7 @@ namespace Gloom
         glm::quat cQuaternion;
         GLfloat fPitch = 0.0f;
         GLfloat fYaw   = 0.0f;
+        GLboolean gimbalLock = false;
 
         // Camera position
         glm::vec3 cPosition;
@@ -183,6 +241,7 @@ namespace Gloom
         GLboolean resetMouse     = true;
         GLboolean isMousePressed = false;
         GLboolean keysInUse[512];
+        GLboolean keysCanToggle[512];
 
         // Last cursor position
         GLfloat lastXPos = 0.0f;
@@ -191,6 +250,9 @@ namespace Gloom
         // Camera settings
         GLfloat cMovementSpeed;
         GLfloat cMouseSensitivity;
+        GLfloat cMovementSpeedModifier;
+        GLfloat cMovementSpeedModifierNormal;
+        GLfloat cMovementSpeedModifierActive;
 
         // View matrix
         glm::mat4 matView;
