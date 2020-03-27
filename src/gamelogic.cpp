@@ -63,7 +63,8 @@ sf::SoundBuffer* buffer;
 Gloom::Shader* shader;
 sf::Sound* sound;
 
-const glm::vec3 boxDimensions(180, 90, 90);
+//const glm::vec3 boxDimensions(180, 90, 90);
+const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
 const glm::vec3 padDimensions(30, 3, 40);
 
 glm::vec3 ballPosition(0, ballRadius + padDimensions.y, boxDimensions.z / 2);

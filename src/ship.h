@@ -33,7 +33,7 @@ public:
     glm::vec3 getAlignmentForce(const std::vector<Ship> &closeShips);
     glm::vec3 getCohesionForce(const std::vector<Ship> &closeShips);
     glm::vec3 getForceFromVec(const glm::vec3 &vec, bool vecDiff=true);
-    void ensureInsideBox();
+    void barrierSafetyNet();
     void printShip();
 
     Ship() : id(++total){

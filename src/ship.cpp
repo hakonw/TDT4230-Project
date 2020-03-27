@@ -41,6 +41,11 @@ void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
     this->acceleration +=  alignmentForce * this->weightAlignment;
     this->acceleration +=   cohesionForce * this->weightCohesion;
 
+
+    // Check if collision with box, and move back inside, as not to just go away infinitely
+    // Overwrites all other behaviors
+    this->barrierSafetyNet();
+
     // Calculate new velocity
     this->velocity = this->velocity + this->acceleration * (float) deltaTime; // v = v0 + at
     // Cap velocity over and under
@@ -48,10 +53,6 @@ void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
     glm::vec3 direction = this->velocity / speed; // Aka normalize
     speed = glm::clamp(speed, this->minVelocity, this->maxVelocity);
     this->velocity = speed * direction;
-
-    // Check if collision with box
-    // TODO update, as it is non-reliable
-    this->ensureInsideBox();
 
     // Update the ships possition
     this->sceneNode->position += (float) deltaTime * this->velocity; // x = x0 + v*t todo inherit wrong?
@@ -144,23 +145,25 @@ std::vector<Ship> Ship::getShipsInRadius(std::vector<Ship> &ships) {
 const glm::vec3 boxOffset(0, -10, -80);
 const glm::vec3 boxDimensions(180, 90, 90);
 
-void Ship::ensureInsideBox() {
+void Ship::barrierSafetyNet() {
     float x = this->sceneNode->position.x;
     float y = this->sceneNode->position.y;
     float z = this->sceneNode->position.z;
 
+    float mf = this->maxForce;
+
     // TODO fix so that it wont go halfway outside the object
     // -90 -> 90
-    if (x > boxDimensions.x / 2 + boxOffset.x) this->velocity.x *= -1;
-    if (x < -boxDimensions.x / 2 + boxOffset.x) this->velocity.x *= -1;
+    if (x > boxDimensions.x / 2 + boxOffset.x) this->acceleration.x = -mf;
+    if (x < -boxDimensions.x / 2 + boxOffset.x) this->acceleration.x = mf;
 
     //
-    if (y > boxDimensions.y / 2 + boxOffset.y) this->velocity.y *= -1;
-    if (y < -boxDimensions.y / 2 + boxOffset.y) this->velocity.y *= -1;
+    if (y > boxDimensions.y / 2 + boxOffset.y) this->acceleration.y = -mf;
+    if (y < -boxDimensions.y / 2 + boxOffset.y) this->acceleration.y = mf;
 
     // -35 -> -125
-    if (z > boxDimensions.z / 2 + boxOffset.z) this->velocity.z *= -1;
-    if (z < -boxDimensions.z / 2 + boxOffset.z) this->velocity.z *= -1;
+    if (z > boxDimensions.z / 2 + boxOffset.z) this->acceleration.z = -mf;
+    if (z < -boxDimensions.z / 2 + boxOffset.z) this->acceleration.z = mf;
 }
 
 glm::vec3 limitVector(const glm::vec3 &vec, float maxLength) {
