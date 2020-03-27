@@ -20,6 +20,7 @@
 
 #include "utilities/imageLoader.hpp"
 #include "ship.h"
+#include "ShipManager.h"
 
 enum KeyFrameAction {
     BOTTOM, TOP
@@ -41,7 +42,8 @@ SceneNode* ballLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
-#define NUM_BOTS 10
+#define MAX_NUM_BOTS 2000
+#define DEFAULT_ALLOWED_BOTS 100
 std::vector <Ship> bots;
 //std::vector <Ship> &Ship::ships = bots;
 
@@ -49,6 +51,7 @@ SceneNode* botsTeamA;
 
 
 // I am mostly lazy
+void updateAmountBots(float &currentFps, double &time);
 unsigned int getTextureID(PNGImage* img);
 void renderNode(SceneNode* node);
 
@@ -160,7 +163,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     rootNode->children.push_back(botsTeamA);
 
 
-    for (int i=0; i<NUM_BOTS; i++) {
+    for (int i=0; i<DEFAULT_ALLOWED_BOTS; i++) {
         Ship ship;
         //ship.sceneNode = createSceneNode();
         //ship.generateShipNode();
@@ -260,7 +263,51 @@ unsigned int getTextureID(PNGImage* img) {
     return textureID;
 }
 
-int fps=0;
+
+// Adaptive update bots based on fps
+void updateAmountBots(float &currentFps, double &time) {
+    // Only update bots if inside limits
+    if (bots.size() > minBots && bots.size() < maxBots) {
+        int deltaBots = calculateAmountAdaptiveUpdateAmountBots(currentFps, time);
+        if (bots.size() - deltaBots < minBots) deltaBots = bots.size() - minBots;
+
+        if (deltaBots > 0) { // Add bots
+            printf("adaptive bot amount: Increasing bots with %i to a total of %i\n", deltaBots, bots.size()+deltaBots);
+
+
+            // Activate old disabled bots
+            for (Ship s : bots) {
+                if (deltaBots == 0) break;
+                if (!s.enabled) {
+                    s.enabled = true;
+                    deltaBots--;
+                }
+            }
+            // Add new bots if needed
+            for (int i=0; i<deltaBots; i++) {
+                Ship ship;
+                bots.push_back(ship);
+                botsTeamA->children.push_back(ship.sceneNode); // Add it to be rendered
+            }
+
+        } else if (deltaBots < 0) { // Remove bots
+            printf("adaptive bot amount: Decreasing bots with %i to a total of %i\n", deltaBots, bots.size()+deltaBots);
+            // Clean up old disabled bots, and then remove bots
+            for (unsigned int i=bots.size()-1; i>minBots; i--) {
+                if (!bots.at(i).enabled) {
+                    bots.erase(bots.begin()+i);
+                } else {
+                    if (deltaBots < 0) {
+                        bots.at(i).enabled = false;
+                        deltaBots++; // Work towards 0
+                    }
+                }
+            }
+        }
+    }
+}
+
+int frameCount=0;
 double sumTimeDelta=0;
 void updateFrame(GLFWwindow* window) {
 
@@ -269,13 +316,15 @@ void updateFrame(GLFWwindow* window) {
     double timeDelta = getTimeDeltaSeconds();
 
     // FPS estimate
-    fps++;
+    frameCount++;
     sumTimeDelta += timeDelta;
     if (sumTimeDelta > 2.0f) {
-        fps = (int) ((double)fps/sumTimeDelta);
-        printf("FPS: %i\n", fps);
-        fps = 0;
+        float fps = ((double)frameCount/sumTimeDelta);
+        updateAmountBots(fps, sumTimeDelta);
+        printf("FPS: %f\n", fps);
+        frameCount = 0;
         sumTimeDelta = 0;
+
     }
     //printNode(ballNode);
 

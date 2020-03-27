@@ -5,7 +5,7 @@
 class Ship {
 public:
     static unsigned int total;
-    const unsigned int id;
+    unsigned int id;
     static std::vector<Ship> &ships;
 
     float minVelocity = 50.0f;
@@ -16,6 +16,8 @@ public:
     float weightSeparation = 1.0f;
     float weightAlignment = 1.0f;
     float weightCohesion = 1.0f;
+
+    bool enabled = true;
 
     SceneNode *sceneNode;
 
