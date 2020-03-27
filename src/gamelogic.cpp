@@ -42,7 +42,6 @@ SceneNode* ballLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
-#define MAX_NUM_BOTS 2000
 #define DEFAULT_ALLOWED_BOTS 100
 std::vector <Ship> bots;
 //std::vector <Ship> &Ship::ships = bots;

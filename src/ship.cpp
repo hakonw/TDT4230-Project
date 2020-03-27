@@ -77,7 +77,7 @@ glm::vec3 Ship::getSeparationForce(const std::vector<Ship> &closeShips) {
             separationForce += sepF / l;
         }
     }
-    return getForceFromVec(separationForce);
+    return getForceFromVec(separationForce, false);
 }
 
 /// Calculate the alignment force
@@ -113,12 +113,14 @@ glm::vec3 Ship::getCohesionForce(const std::vector<Ship> &closeShips) { // TODO 
 
 /// Transform steering-direction to a desired velocity vector, which we can use as a force
 /// @param vec vector in the desired location
+/// @param vecDiff to subtract the currents ship velocity to get the desired force, used by separation-force
 /// @return steering force
-glm::vec3 Ship::getForceFromVec(const glm::vec3 &vec) {
+glm::vec3 Ship::getForceFromVec(const glm::vec3 &vec, bool vecDiff) {
     if (glm::length(vec) < 0.2f) { // Ignore super tiny vectors and avoid div by 0 assumes allowed maxForce > val
         return vec;
     }
-    glm::vec3 desiredVector = glm::normalize(vec) * this->maxVelocity - this->velocity;
+    glm::vec3 desiredVector = glm::normalize(vec) * this->maxVelocity;
+    if (vecDiff) desiredVector -= this->velocity;
     return limitVector(desiredVector, this->maxForce);
 }
 

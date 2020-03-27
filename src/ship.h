@@ -13,7 +13,7 @@ public:
     float perceptionRadius = 60.0f;
     float maxForce = 60.0f;
 
-    float weightSeparation = 1.0f;
+    float weightSeparation = 1.2f;
     float weightAlignment = 1.0f;
     float weightCohesion = 1.0f;
 
@@ -32,7 +32,7 @@ public:
     glm::vec3 getSeparationForce(const std::vector<Ship> &closeShips);
     glm::vec3 getAlignmentForce(const std::vector<Ship> &closeShips);
     glm::vec3 getCohesionForce(const std::vector<Ship> &closeShips);
-    glm::vec3 getForceFromVec(const glm::vec3 &vec);
+    glm::vec3 getForceFromVec(const glm::vec3 &vec, bool vecDiff=true);
     void ensureInsideBox();
     void printShip();
 
