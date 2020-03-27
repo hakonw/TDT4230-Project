@@ -42,7 +42,9 @@ SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
 #define NUM_BOTS 10
-std::vector <SceneNode*> bots;
+std::vector <Ship> bots;
+//std::vector <Ship> &Ship::ships = bots;
+
 SceneNode* botsTeamA;
 
 
@@ -159,10 +161,11 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
 
     for (int i=0; i<NUM_BOTS; i++) {
-        SceneNode* node = createSceneNode();
-        generateShipNode(node); // TODO fix to generate instead of writing to pointer
-        bots.push_back(node);
-        botsTeamA->children.push_back(node);
+        Ship ship;
+        //ship.sceneNode = createSceneNode();
+        //ship.generateShipNode();
+        bots.push_back(ship);
+        botsTeamA->children.push_back(ship.sceneNode); // Add it to be rendered
     }
 
     // Lights
@@ -263,9 +266,10 @@ void updateFrame(GLFWwindow* window) {
 
     double timeDelta = getTimeDeltaSeconds();
 
-    printNode(ballNode);
-    for (unsigned int i=0; i < botsTeamA->children.size(); i++) {
-        updateShipPosition(botsTeamA->children.at(i), timeDelta);
+    //printNode(ballNode);
+
+    for (unsigned int i=0; i < bots.size(); i++) {
+        bots.at(i).updateShip(timeDelta, bots);
     }
 
     const float ballBottomY = boxNode->position.y - (boxDimensions.y/2) + ballRadius + padDimensions.y;

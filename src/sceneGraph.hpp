@@ -20,7 +20,6 @@ enum SceneNodeType {
 struct SceneNode {
 	SceneNode() {
 		position = glm::vec3(0, 0, 0);
-		momentum = glm::vec3(0, 0, 0);
 		rotation = glm::vec3(0, 0, 0);
 		scale = glm::vec3(1, 1, 1);
 
@@ -38,7 +37,6 @@ struct SceneNode {
 	
 	// The node's position and rotation relative to its parent
 	glm::vec3 position;
-	glm::vec3 momentum;
 	glm::vec3 rotation;
 	glm::vec3 scale;
 
