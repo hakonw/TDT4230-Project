@@ -21,8 +21,8 @@ int calculateAmountAdaptiveUpdateAmountBots(float &currentFps, double &time) {
             newlyUpdate = false;
         }
 
-        if (weightedAverageFps < (float) (targetFps - 0.1*allowedFpsDelta) // Fps is under or over threshold
-            || weightedAverageFps > (float) (targetFps + 0.1*allowedFpsDelta)) { // 2x max threshold to keep it sable
+        if (weightedAverageFps < (float) (targetFps - allowedFpsDelta) // Fps is under or over threshold
+            || weightedAverageFps > (float) (targetFps + 2*allowedFpsDelta)) { // 2x max threshold to keep it sable
             deltaBots = calculateBotDiff(weightedAverageFps, targetFps, botsPerFps);
             preUpdateFps = weightedAverageFps;
             newlyUpdate = true;
