@@ -260,14 +260,26 @@ unsigned int getTextureID(PNGImage* img) {
     return textureID;
 }
 
+int fps=0;
+double sumTimeDelta=0;
 void updateFrame(GLFWwindow* window) {
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     double timeDelta = getTimeDeltaSeconds();
 
+    // FPS estimate
+    fps++;
+    sumTimeDelta += timeDelta;
+    if (sumTimeDelta > 2.0f) {
+        fps = (int) ((double)fps/sumTimeDelta);
+        printf("FPS: %i\n", fps);
+        fps = 0;
+        sumTimeDelta = 0;
+    }
     //printNode(ballNode);
 
+    //bots.at(0).printShip();
     for (unsigned int i=0; i < bots.size(); i++) {
         bots.at(i).updateShip(timeDelta, bots);
     }
