@@ -19,10 +19,7 @@ void Ship::generateShipNode() {
 
     this->sceneNode->position = glm::vec3(-4.0f, -49.0f, -100.0f);
 
-    this->velocity.x = glm::linearRand(-1, 1);
-    this->velocity.y = glm::linearRand(-1, 1);
-    this->velocity.z = glm::linearRand(-1, 1);
-    this->velocity *= this->maxVelocity;
+    this->velocity = glm::ballRand(this->maxVelocity);
 }
 
 void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
@@ -32,6 +29,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
     const std::vector<Ship> closeShips = this->getShipsInRadius(ships);
 
     // Rule 1: Separation
+    glm::vec3 separationForce = getSeparationForce(closeShips);
 
     // Rule 2: Alignment
     glm::vec3 alignmentForce = getAlignmentForce(closeShips);
@@ -39,8 +37,9 @@ void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
     // Rule 3: Cohesion
     glm::vec3 cohesionForce = getCohesionForce(closeShips);
 
-    this->acceleration += alignmentForce * this->weightAlignment;
-    this->acceleration +=  cohesionForce * this->weightCohesion;
+    this->acceleration += separationForce * this->weightSeparation;
+    this->acceleration +=  alignmentForce * this->weightAlignment;
+    this->acceleration +=   cohesionForce * this->weightCohesion;
 
     // Calculate new velocity
     this->velocity = this->velocity + this->acceleration * (float) deltaTime; // v = v0 + at
@@ -59,12 +58,26 @@ void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
     //printShip();
 }
 
-/// Calculate the separation force
+/// Calculate the separation force with a (linear) inverse proportional factor
 /// @param closeShips all ships within the perceptionRadius
 /// @return force for steering away from all neighbours
 glm::vec3 Ship::getSeparationForce(const std::vector<Ship> &closeShips) {
-    // TODO
-    return glm::vec3();
+    if (closeShips.empty()) return glm::vec3(0.0f);
+
+    // Sum of forces, between 0 and 1
+    glm::vec3 separationForce = glm::vec3(0.0f);
+    for (Ship s : closeShips) {
+        // vec from s to this
+        glm::vec3 sepF = this->sceneNode->position - s.sceneNode->position;
+        float l = glm::length(sepF);
+
+        if (l == 0) { // if they get inside of each other, use random vector
+            separationForce += glm::ballRand(2.0f);
+        } else {
+            separationForce += sepF / l;
+        }
+    }
+    return getForceFromVec(separationForce);
 }
 
 /// Calculate the alignment force
@@ -77,7 +90,7 @@ glm::vec3 Ship::getAlignmentForce(const std::vector<Ship> &closeShips) {
     for (Ship s : closeShips) {
         averageVelocity += s.velocity;
     }
-    averageVelocity /= closeShips.size();
+    //averageVelocity /= closeShips.size(); // Not needed, but nice for visualization of the math
     return getForceFromVec(averageVelocity);
 }
 

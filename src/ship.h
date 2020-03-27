@@ -8,10 +8,10 @@ public:
     const unsigned int id;
     static std::vector<Ship> &ships;
 
-    float minVelocity = 30.0f;
-    float maxVelocity = 50.0f;
+    float minVelocity = 50.0f;
+    float maxVelocity = 80.0f;
     float perceptionRadius = 60.0f;
-    float maxForce = 30.0f;
+    float maxForce = 60.0f;
 
     float weightSeparation = 1.0f;
     float weightAlignment = 1.0f;
