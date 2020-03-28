@@ -16,7 +16,7 @@ namespace Gloom
     {
     public:
         Camera(glm::vec3 position         = glm::vec3(0.0f, 2.0f, -20),
-               GLfloat   movementSpeed    = 20.0f,
+               GLfloat   movementSpeed    = 30.0f,
                GLfloat   mouseSensitivity = 0.001f,
                GLfloat   movementSpeedModifierNormal = 1.0f,
                GLfloat   movementSpeedModifierActive = 2.0f)

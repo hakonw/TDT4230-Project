@@ -1,4 +1,3 @@
-#include <chrono>
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 #include <SFML/Audio/SoundBuffer.hpp>
@@ -27,15 +26,10 @@ enum KeyFrameAction {
     BOTTOM, TOP
 };
 
-#include <timestamps.h>
-
 Gloom::Camera camera;
 
 double padPositionX = 0;
 double padPositionZ = 0;
-
-unsigned int currentKeyFrame = 0;
-unsigned int previousKeyFrame = 0;
 
 SceneNode* rootNode;
 SceneNode* boxNode;
@@ -71,13 +65,11 @@ const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
 const glm::vec3 padDimensions(30, 3, 40);
 
 glm::vec3 ballPosition(0, ballRadius + padDimensions.y, boxDimensions.z / 2);
-glm::vec3 ballDirection(1, 1, 0.2f);
 
 CommandLineOptions options;
 
 bool hasStarted = false;
 bool hasLost = false;
-bool jumpedToNextFrame = false;
 bool isPaused = false;
 
 bool mouseLeftPressed   = false;
@@ -85,39 +77,13 @@ bool mouseLeftReleased  = false;
 bool mouseRightPressed  = false;
 bool mouseRightReleased = false;
 
-// Modify if you want the music to start further on in the track. Measured in seconds.
-const float debug_startTime = 0;
-double totalElapsedTime = debug_startTime;
-double gameElapsedTime = debug_startTime;
-
-double mouseSensitivity = 1.0;
-double lastMouseX = windowWidth / 2;
-double lastMouseY = windowHeight / 2;
 void mouseCallback(GLFWwindow* window, double x, double y) {
-    int windowWidth, windowHeight;
     camera.handleCursorPosInput(x, y);
-
-    /*
-    glfwGetWindowSize(window, &windowWidth, &windowHeight);
-    glViewport(0, 0, windowWidth, windowHeight);
-    double deltaX = x - lastMouseX;
-    double deltaY = y - lastMouseY;
-
-    padPositionX -= mouseSensitivity * deltaX / windowWidth;
-    padPositionZ -= mouseSensitivity * deltaY / windowHeight;
-
-    if (padPositionX > 1) padPositionX = 1;
-    if (padPositionX < 0) padPositionX = 0;
-    if (padPositionZ > 1) padPositionZ = 1;
-    if (padPositionZ < 0) padPositionZ = 0;
-
-    glfwSetCursorPos(window, windowWidth / 2, windowHeight / 2);*/
 }
 
-
 void placeLight3fvVal(int id, std::string field, glm::vec3 v3) {
-    std::string uniformname = fmt::format("pointLights[{}].{}", id, field);
-    GLint location = shader->getUniformFromName(uniformname);
+    std::string uniformName = fmt::format("pointLights[{}].{}", id, field);
+    GLint location = shader->getUniformFromName(uniformName);
     glUniform3fv(location, 1, glm::value_ptr(v3));
 }
 
@@ -164,14 +130,11 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
     for (int i=0; i<DEFAULT_ALLOWED_BOTS; i++) {
         Ship ship;
-        //ship.sceneNode = createSceneNode();
-        //ship.generateShipNode();
         bots.push_back(ship);
         botsTeamA->children.push_back(ship.sceneNode); // Add it to be rendered
     }
 
     // Lights
-    // task 1a
     ballLightNode = createSceneNode();
     padLightNode = createSceneNode();
     staticLightNode = createSceneNode();
@@ -190,10 +153,9 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     staticLightNode->position = glm::vec3(5.0f, 0.0f, -1.0f);
 
     // From task 1, where each light had to be at a different place
-    ballNode->children.push_back(ballLightNode);
+    bots.at(0).sceneNode->children.push_back(ballLightNode);
     padNode->children.push_back(ballLightNode);
     padNode->children.push_back(padLightNode);
-    //rootNode->children.push_back(staticLightNode);
     padNode->children.push_back(staticLightNode);
 
     //3b Select node colors
@@ -247,14 +209,12 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     std::cout << "Ready. Click to start!" << std::endl;
 }
 
-// Assigment 2 task 1c, 1d
 unsigned int getTextureID(PNGImage* img) {
     unsigned int textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels.data());
 
-    // Assugment 2 task 1e
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -318,30 +278,19 @@ void updateFrame(GLFWwindow* window) {
     frameCount++;
     sumTimeDelta += timeDelta;
     if (sumTimeDelta > 2.0f) {
-        float fps = ((double)frameCount/sumTimeDelta);
+        float fps = ((float)frameCount/(float)sumTimeDelta);
         updateAmountBots(fps, sumTimeDelta);
         printf("FPS: %f\n", fps);
         frameCount = 0;
         sumTimeDelta = 0;
 
     }
-    //printNode(ballNode);
 
+    //printNode(ballNode);
     //bots.at(0).printShip();
     for (unsigned int i=0; i < bots.size(); i++) {
         bots.at(i).updateShip(timeDelta, bots);
     }
-
-    const float ballBottomY = boxNode->position.y - (boxDimensions.y/2) + ballRadius + padDimensions.y;
-    const float ballTopY    = boxNode->position.y + (boxDimensions.y/2) - ballRadius;
-    const float BallVerticalTravelDistance = ballTopY - ballBottomY;
-
-    const float cameraWallOffset = 30; // Arbitrary addition to prevent ball from going too much into camera
-
-    const float ballMinX = boxNode->position.x - (boxDimensions.x/2) + ballRadius;
-    const float ballMaxX = boxNode->position.x + (boxDimensions.x/2) - ballRadius;
-    const float ballMinZ = boxNode->position.z - (boxDimensions.z/2) + ballRadius;
-    const float ballMaxZ = boxNode->position.z + (boxDimensions.z/2) - ballRadius - cameraWallOffset;
 
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1)) {
         mouseLeftPressed = true;
@@ -360,124 +309,16 @@ void updateFrame(GLFWwindow* window) {
 
     if(!hasStarted) {
         if (mouseLeftPressed) {
-            if (options.enableMusic) {
-                sound = new sf::Sound();
-                sound->setBuffer(*buffer);
-                sf::Time startTime = sf::seconds(debug_startTime);
-                sound->setPlayingOffset(startTime);
-                sound->play();
-            }
-            totalElapsedTime = debug_startTime;
-            gameElapsedTime = debug_startTime;
             hasStarted = true;
         }
-
-        ballPosition.x = ballMinX + (1 - padPositionX) * (ballMaxX - ballMinX);
-        ballPosition.y = ballBottomY;
-        ballPosition.z = ballMinZ + (1 - padPositionZ) * ((ballMaxZ+cameraWallOffset) - ballMinZ);
     } else {
-        totalElapsedTime += timeDelta;
-        if(hasLost) {
-            if (mouseLeftReleased) {
-                hasLost = false;
-                hasStarted = false;
-                currentKeyFrame = 0;
-                previousKeyFrame = 0;
-            }
-        } else if (isPaused) {
+        if (isPaused) {
             if (mouseRightReleased) {
                 isPaused = false;
-                if (options.enableMusic) {
-                    sound->play();
-                }
             }
         } else {
-            gameElapsedTime += timeDelta;
             if (mouseRightReleased) {
                 isPaused = true;
-                if (options.enableMusic) {
-                    sound->pause();
-                }
-            }
-            // Get the timing for the beat of the song
-            for (unsigned int i = currentKeyFrame; i < keyFrameTimeStamps.size(); i++) {
-                if (gameElapsedTime < keyFrameTimeStamps.at(i)) {
-                    continue;
-                }
-                currentKeyFrame = i;
-            }
-
-            jumpedToNextFrame = currentKeyFrame != previousKeyFrame;
-            previousKeyFrame = currentKeyFrame;
-
-            double frameStart = keyFrameTimeStamps.at(currentKeyFrame);
-            double frameEnd = keyFrameTimeStamps.at(currentKeyFrame + 1); // Assumes last keyframe at infinity
-
-            double elapsedTimeInFrame = gameElapsedTime - frameStart;
-            double frameDuration = frameEnd - frameStart;
-            double fractionFrameComplete = elapsedTimeInFrame / frameDuration;
-
-            double ballYCoord;
-
-            KeyFrameAction currentOrigin = keyFrameDirections.at(currentKeyFrame);
-            KeyFrameAction currentDestination = keyFrameDirections.at(currentKeyFrame + 1);
-
-            // Synchronize ball with music
-            if (currentOrigin == BOTTOM && currentDestination == BOTTOM) {
-                ballYCoord = ballBottomY;
-            } else if (currentOrigin == TOP && currentDestination == TOP) {
-                ballYCoord = ballBottomY + BallVerticalTravelDistance;
-            } else if (currentDestination == BOTTOM) {
-                ballYCoord = ballBottomY + BallVerticalTravelDistance * (1 - fractionFrameComplete);
-            } else if (currentDestination == TOP) {
-                ballYCoord = ballBottomY + BallVerticalTravelDistance * fractionFrameComplete;
-            }
-
-            // Make ball move
-            const float ballSpeed = 60.0f;
-            ballPosition.x += timeDelta * ballSpeed * ballDirection.x;
-            ballPosition.y = ballYCoord;
-            ballPosition.z += timeDelta * ballSpeed * ballDirection.z;
-
-            // Make ball bounce
-            if (ballPosition.x < ballMinX) {
-                ballPosition.x = ballMinX;
-                ballDirection.x *= -1;
-            } else if (ballPosition.x > ballMaxX) {
-                ballPosition.x = ballMaxX;
-                ballDirection.x *= -1;
-            }
-            if (ballPosition.z < ballMinZ) {
-                ballPosition.z = ballMinZ;
-                ballDirection.z *= -1;
-            } else if (ballPosition.z > ballMaxZ) {
-                ballPosition.z = ballMaxZ;
-                ballDirection.z *= -1;
-            }
-
-            if(options.enableAutoplay) {
-                padPositionX = 1-(ballPosition.x - ballMinX) / (ballMaxX - ballMinX);
-                padPositionZ = 1-(ballPosition.z - ballMinZ) / ((ballMaxZ+cameraWallOffset) - ballMinZ);
-            }
-
-            // Check if the ball is hitting the pad when the ball is at the bottom.
-            // If not, you just lost the game! (hehe)
-            if (jumpedToNextFrame && currentOrigin == BOTTOM && currentDestination == TOP) {
-                double padLeftX  = boxNode->position.x - (boxDimensions.x/2) + (1 - padPositionX) * (boxDimensions.x - padDimensions.x);
-                double padRightX = padLeftX + padDimensions.x;
-                double padFrontZ = boxNode->position.z - (boxDimensions.z/2) + (1 - padPositionZ) * (boxDimensions.z - padDimensions.z);
-                double padBackZ  = padFrontZ + padDimensions.z;
-
-                if (   ballPosition.x < padLeftX
-                    || ballPosition.x > padRightX
-                    || ballPosition.z < padFrontZ
-                    || ballPosition.z > padBackZ) {
-                    hasLost = true;
-                    if (options.enableMusic) {
-                        sound->stop();
-                        delete sound;
-                    }
-                }
             }
         }
     }
@@ -496,11 +337,11 @@ void updateFrame(GLFWwindow* window) {
 
     ballNode->position = ballPosition;
     ballNode->scale = glm::vec3(ballRadius);
-    ballNode->rotation = { 0, totalElapsedTime*2, 0 };
+    ballNode->rotation = { 0, timeDelta*2, 0 };
 
-    padNode->position  = { 
-        boxNode->position.x - (boxDimensions.x/2) + (padDimensions.x/2) + (1 - padPositionX) * (boxDimensions.x - padDimensions.x), 
-        boxNode->position.y - (boxDimensions.y/2) + (padDimensions.y/2), 
+    padNode->position  = {
+        boxNode->position.x - (boxDimensions.x/2) + (padDimensions.x/2) + (1 - padPositionX) * (boxDimensions.x - padDimensions.x),
+        boxNode->position.y - (boxDimensions.y/2) + (padDimensions.y/2),
         boxNode->position.z - (boxDimensions.z/2) + (padDimensions.z/2) + (1 - padPositionZ) * (boxDimensions.z - padDimensions.z)
     };
 
@@ -523,7 +364,6 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
 
     // 1b, save the model projection
     // Projection*View * Model
-    // node->currentTransformationMatrix = transformationThusFar * transformationMatrix;
     node->currentModelTransformationMatrix = transformationThusFar * transformationMatrix; // M
     node->currentTransformationMatrix = VP * node->currentModelTransformationMatrix; // MVP
 
@@ -546,8 +386,8 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
             {
                 glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
                 glm::vec3 pos3 = glm::vec3(pos)/pos.w;  // Correct the length
-                std::string uniformname = fmt::format("pointLights[{}].position", node->lightSourceID);
-                GLint location = shader->getUniformFromName(uniformname);
+                std::string uniformName = fmt::format("pointLights[{}].position", node->lightSourceID);
+                GLint location = shader->getUniformFromName(uniformName);
                 glUniform3fv(location, 1, glm::value_ptr(pos3));
             }
             break;
@@ -563,15 +403,15 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
 void renderNode(SceneNode* node) {
     // MVP
     glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(node->currentTransformationMatrix));
-    // 1b  aka matrix M
+    // Matrix M
     glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(node->currentModelTransformationMatrix));
-    // 1d, pass normal matrix to the vertex shader
+    // pass normal matrix to the vertex shader
     glUniformMatrix3fv(5, 1, GL_FALSE, glm::value_ptr(node->currentNormalMatrix));
 
     switch(node->nodeType) {
     case GEOMETRY:
             if(node->vertexArrayObjectID != -1) {
-                glBindVertexArray(node->vertexArrayObjectID);
+                glBindVertexArray((GLuint)(node->vertexArrayObjectID));
                 glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
             }
             break;
@@ -585,7 +425,7 @@ void renderNode(SceneNode* node) {
                 glBindTextureUnit(3, node->roughnessMapID);
 
                 if(node->vertexArrayObjectID != -1) {
-                    glBindVertexArray(node->vertexArrayObjectID);
+                    glBindVertexArray((GLuint)node->vertexArrayObjectID);
                     glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
                 }
                 glUniform1i(7, 0);
@@ -606,7 +446,7 @@ void renderNode(SceneNode* node) {
 void renderFrame(GLFWwindow* window) {
     int windowWidth, windowHeight;
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
-    glViewport(0.0f, 0.0f, float(windowWidth), float(windowHeight));
+    glViewport(0, 0, (GLint)(windowWidth), (GLint)(windowHeight));
 
     renderNode(rootNode);
 }
