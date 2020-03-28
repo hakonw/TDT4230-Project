@@ -16,7 +16,7 @@ void Ship::generateShipNode() {
     unsigned int mVAO = generateBuffer(m);
     this->sceneNode->vertexArrayObjectID = (int) mVAO;
     this->sceneNode->VAOIndexCount = m.indices.size();
-    this->sceneNode->nodeType = GEOMETRY;
+    this->sceneNode->nodeType = SceneNode::GEOMETRY;
 
     this->sceneNode->position = glm::vec3(-4.0f, -49.0f, -100.0f);
 

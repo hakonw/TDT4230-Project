@@ -41,7 +41,7 @@ public:
     void printShip();
 
     Ship() : id(++total){
-        sceneNode = createSceneNode();
+        sceneNode = new SceneNode();
         generateShipNode();
     }
 };

@@ -108,20 +108,18 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     unsigned int padVAO  = generateBuffer(pad);
 
     // Construct scene
-    rootNode = createSceneNode();
-    boxNode  = createSceneNode();
-    padNode  = createSceneNode();
-    ballNode = createSceneNode();
+    rootNode = new SceneNode();
+    boxNode  = new SceneNode();
+    padNode  = new SceneNode();
+    ballNode = new SceneNode();
 
-    rootNode->children.push_back(boxNode);
-    rootNode->children.push_back(padNode);
-    rootNode->children.push_back(ballNode);
+    rootNode->addChild(boxNode);
+    rootNode->addChild(padNode);
+    rootNode->addChild(ballNode);
 
-
-    botsTeamA = createSceneNode();
-    botsTeamA->nodeType = GROUP;
-    rootNode->children.push_back(botsTeamA);
-
+    botsTeamA = new SceneNode();
+    botsTeamA->nodeType = SceneNode::GROUP;
+    rootNode->addChild(botsTeamA);
 
     for (int i=0; i<DEFAULT_ALLOWED_BOTS; i++) {
         Ship ship;
@@ -130,28 +128,28 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     }
 
     // Lights
-    ballLightNode = createSceneNode();
-    padLightNode = createSceneNode();
-    staticLightNode = createSceneNode();
+    ballLightNode = new SceneNode();
+    padLightNode = new SceneNode();
+    staticLightNode = new SceneNode();
 
-    ballLightNode->nodeType = SceneNodeType::POINT_LIGHT;
+    ballLightNode->nodeType = SceneNode::POINT_LIGHT;
     ballLightNode->lightSourceID = 0;
     ballLightNode->position = glm::vec3(0.0f, ballRadius*1.01f, 0.0f);
     //ballLightNode->position = glm::vec3(-5.0f, 0.0f, -1.0f);
 
-    padLightNode->nodeType = SceneNodeType::POINT_LIGHT;
+    padLightNode->nodeType = SceneNode::POINT_LIGHT;
     padLightNode->lightSourceID = 1;
     padLightNode->position = glm::vec3(0.0f, 0.0f, -1.0f);
 
-    staticLightNode->nodeType = SceneNodeType::POINT_LIGHT;
+    staticLightNode->nodeType = SceneNode::POINT_LIGHT;
     staticLightNode->lightSourceID = 2;
     staticLightNode->position = glm::vec3(5.0f, 0.0f, -1.0f);
 
     // From task 1, where each light had to be at a different place
-    bots.at(0).sceneNode->children.push_back(ballLightNode);
-    padNode->children.push_back(ballLightNode);
-    padNode->children.push_back(padLightNode);
-    padNode->children.push_back(staticLightNode);
+    bots.at(0).sceneNode->addChild(ballLightNode);
+    padNode->addChild(ballLightNode);
+    padNode->addChild(padLightNode);
+    padNode->addChild(staticLightNode);
 
     //3b Select node colors
     glm::vec3 c;
@@ -175,7 +173,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
     boxNode->vertexArrayObjectID = boxVAO;
     boxNode->VAOIndexCount = box.indices.size();
-    boxNode->nodeType = GEOMETRY_NORMAL_MAPPED;
+    boxNode->nodeType = SceneNode::GEOMETRY_NORMAL_MAPPED;
 
     padNode->vertexArrayObjectID = padVAO;
     padNode->VAOIndexCount = pad.indices.size();
@@ -199,7 +197,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
     getTimeDeltaSeconds();
 
-    std::cout << fmt::format("Initialized scene with {} SceneNodes.", totalChildren(rootNode)) << std::endl;
+    std::cout << fmt::format("Initialized scene with {} SceneNodes.", rootNode->totalChildren()) << std::endl;
 
     std::cout << "Ready. Click to start!" << std::endl;
 }
@@ -227,7 +225,6 @@ void updateAmountBots(float &currentFps, double &time) {
 
         if (deltaBots > 0) { // Add bots
             printf("adaptive bot amount: Increasing bots with %i to a total of %i\n", deltaBots, bots.size()+deltaBots);
-
 
             // Activate old disabled bots
             for (Ship s : bots) {
@@ -341,8 +338,6 @@ void updateFrame(GLFWwindow* window) {
     // update uniforms that doesnt change that often (once per draw)
     glUniform3fv(10, 1, glm::value_ptr(camera.getCameraPosition()));
     updateNodeTransformations(rootNode, VP, glm::mat4(1.0f));
-    // 1c
-    //glUniform3fv(7, NUM_POINT_LIGHTS, glm::value_ptr(pointLightPositions[0]));
 }
 
 void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transformationThusFar) {
@@ -373,9 +368,9 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
     }
 
     switch(node->nodeType) {
-        case GEOMETRY: break;
-        case GEOMETRY_NORMAL_MAPPED: break;
-        case POINT_LIGHT:
+        case SceneNode::GEOMETRY: break;
+        case SceneNode::GEOMETRY_NORMAL_MAPPED: break;
+        case SceneNode::POINT_LIGHT:
             {
                 glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
                 glm::vec3 pos3 = glm::vec3(pos)/pos.w;  // Correct the length
@@ -384,8 +379,8 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
                 glUniform3fv(location, 1, glm::value_ptr(pos3));
             }
             break;
-        case SPOT_LIGHT: break;
-        case GROUP: break;
+        case SceneNode::SPOT_LIGHT: break;
+        case SceneNode::GROUP: break;
     }
 
     for(SceneNode* child : node->children) {
@@ -402,13 +397,13 @@ void renderNode(SceneNode* node) {
     glUniformMatrix3fv(5, 1, GL_FALSE, glm::value_ptr(node->currentNormalMatrix));
 
     switch(node->nodeType) {
-    case GEOMETRY:
+        case SceneNode::GEOMETRY:
             if(node->vertexArrayObjectID != -1) {
                 glBindVertexArray((GLuint)(node->vertexArrayObjectID));
                 glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
             }
             break;
-        case GEOMETRY_NORMAL_MAPPED:
+        case SceneNode::GEOMETRY_NORMAL_MAPPED:
             {
                 glUniform1i(7, 1); // useTexture
                 glUniform1i(8, 1); // useNormalMap
@@ -426,9 +421,9 @@ void renderNode(SceneNode* node) {
                 glUniform1i(9, 0);
             }
             break;
-        case POINT_LIGHT: break;
-        case SPOT_LIGHT: break;
-        case GROUP: break;
+        case SceneNode::POINT_LIGHT: break;
+        case SceneNode::SPOT_LIGHT: break;
+        case SceneNode::GROUP: break;
     }
 
     for(SceneNode* child : node->children) {
