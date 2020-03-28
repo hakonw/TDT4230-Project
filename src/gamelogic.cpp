@@ -56,7 +56,6 @@ void renderNode(SceneNode* node);
 double ballRadius = 3.0f;
 
 // These are heap allocated, because they should not be initialised at the start of the program
-sf::SoundBuffer* buffer;
 Gloom::Shader* shader;
 sf::Sound* sound;
 
@@ -88,11 +87,6 @@ void placeLight3fvVal(int id, std::string field, glm::vec3 v3) {
 }
 
 void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
-    buffer = new sf::SoundBuffer();
-    if (!buffer->loadFromFile("../res/Hall of the Mountain King.ogg")) {
-        return;
-    }
-
     options = gameOptions;
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);

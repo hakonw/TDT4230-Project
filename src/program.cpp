@@ -50,9 +50,6 @@ void runProgram(GLFWwindow* window, CommandLineOptions options)
         printDebug("Post-render: ")
         printGLError();
 
-
-
-
         // Handle other events
         glfwPollEvents();
         handleKeyboardInput(window);
