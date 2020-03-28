@@ -1,7 +1,91 @@
 #include <iostream>
 #include "shapes.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/transform.hpp>
 
 #define M_PI 3.14159265359f
+
+/* 3 (Top vertex)
+ * |\__
+ * |\  \___
+ * | \     \__
+ * |  \       \__
+ * |   \         \__
+ * |     \          \__
+ * |      \            \_ 1
+ * |       \         ___/ \
+ * |        \   ____/     |
+ * |       ___\/          |
+ * |  ____/    \          |
+ * |_/          \         |
+ * 0\__          \        |
+ *     \__         \      |
+ *        \__       \     |
+ *           \__     \    |
+ *              \__   \   |
+ *                 \__ \  |
+ *                    \_\ |
+ *                       \|
+ *                        2
+ */
+
+Mesh tetrahedrons(const glm::vec3 scale) {
+    Mesh m;
+
+    const float length = 1.0f; // DO NOT CHANGE
+    const float height = std::sqrt(6.0f) / 3 * length;
+    const float width = std::sqrt(1.25f); // sqrt(0.5^2 + 1^2) -- pythagoras
+
+    // Populate points
+    m.vertices.resize(4);
+    m.vertices.at(0) = glm::vec3(0.0f, 0.0f, 0.0f);
+    m.vertices.at(1)  = glm::vec3(1.0f, 0.0f, 0.0f);
+    m.vertices.at(2)  = glm::vec3(0.5f, 0.0f, width);
+    m.vertices.at(3)  = glm::vec3(0.5f, height, (1.0f / 3.0f) * width);
+
+    // Center of origin is now the left corner
+    // Translate it to its correct position
+    for (glm::vec3 &vec : m.vertices) {
+        glm::vec4 vec4 = glm::scale(scale) * glm::translate(glm::vec3(-length/2.0f, -height/3.0f, -width/3.0f)) * glm::vec4(vec, 1.0f);
+        vec = glm::vec3(vec4);
+    }
+
+    int indices[4*3]; // 4 sides with 3 points each
+    // Populate indices
+    // Underside
+    indices[0*3 + 0] = 0;
+    indices[0*3 + 1] = 1;
+    indices[0*3 + 2] = 2;
+
+    // left side
+    indices[1*3 + 0] = 0;
+    indices[1*3 + 1] = 2;
+    indices[1*3 + 2] = 3;
+
+    // Towards side
+    indices[2*3 + 0] = 1;
+    indices[2*3 + 1] = 3;
+    indices[2*3 + 2] = 2;
+
+    // right side
+    indices[3*3 + 0] = 0;
+    indices[3*3 + 1] = 3;
+    indices[3*3 + 2] = 1;
+
+    m.indices = std::vector<unsigned int>(std::begin(indices), std::end(indices));
+
+    // Normals
+    for (unsigned int i = 0; i<m.vertices.size(); i++) {
+        glm::vec3 a = m.vertices.at(indices[i*3 + 0]);
+        glm::vec3 b = m.vertices.at(indices[i*3 + 1]);
+        glm::vec3 c = m.vertices.at(indices[i*3 + 2]);
+
+        glm::vec3 n = glm::normalize(glm::cross(b-a, c-a));
+        m.normals.push_back(n);
+    }
+
+    return m;
+}
 
 Mesh cube(glm::vec3 scale, glm::vec2 textureScale, bool tilingTextures, bool inverted, glm::vec3 textureScale3d) {
     glm::vec3 points[8];

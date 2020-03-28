@@ -100,6 +100,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     Mesh pad = cube(padDimensions, glm::vec2(30, 40), true);
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
     Mesh sphere = generateSphere(1.0, 40, 40);
+    //Mesh tet = tetrahedrons(glm::vec3(2.0f));
 
     // Fill buffers
     unsigned int ballVAO = generateBuffer(sphere);
@@ -273,17 +274,10 @@ void updateFrame(GLFWwindow* window) {
     sumTimeDelta += timeDelta;
     if (sumTimeDelta > 2.0f) {
         float fps = ((float)frameCount/(float)sumTimeDelta);
-        updateAmountBots(fps, sumTimeDelta);
+        if (!isPaused) updateAmountBots(fps, sumTimeDelta);
         printf("FPS: %f\n", fps);
         frameCount = 0;
         sumTimeDelta = 0;
-
-    }
-
-    //printNode(ballNode);
-    //bots.at(0).printShip();
-    for (unsigned int i=0; i < bots.size(); i++) {
-        bots.at(i).updateShip(timeDelta, bots);
     }
 
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1)) {
@@ -313,6 +307,11 @@ void updateFrame(GLFWwindow* window) {
         } else {
             if (mouseRightReleased) {
                 isPaused = true;
+            }
+
+            //bots.at(0).printShip();
+            for (unsigned int i=0; i < bots.size(); i++) {
+                bots.at(i).updateShip(timeDelta, bots);
             }
         }
     }

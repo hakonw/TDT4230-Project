@@ -11,10 +11,11 @@ unsigned int Ship::total = 0;
 
 void Ship::generateShipNode() {
     const glm::vec3 dboxDimensions(4, 3, 2);
-    Mesh dbox = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
-    unsigned int dboxVAO = generateBuffer(dbox);
-    this->sceneNode->vertexArrayObjectID = (int) dboxVAO;
-    this->sceneNode->VAOIndexCount = dbox.indices.size();
+    Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
+    //Mesh m = tetrahedrons(glm::vec3(4.0f, 6.0f, 4.0f));
+    unsigned int mVAO = generateBuffer(m);
+    this->sceneNode->vertexArrayObjectID = (int) mVAO;
+    this->sceneNode->VAOIndexCount = m.indices.size();
     this->sceneNode->nodeType = GEOMETRY;
 
     this->sceneNode->position = glm::vec3(-4.0f, -49.0f, -100.0f);
@@ -56,6 +57,10 @@ void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
 
     // Update the ships possition
     this->sceneNode->position += (float) deltaTime * this->velocity; // x = x0 + v*t todo inherit wrong?
+
+    // Set rotation
+    this->sceneNode->rotation = direction;
+
     //printShip();
 }
 
