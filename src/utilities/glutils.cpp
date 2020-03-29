@@ -4,8 +4,8 @@
 #include <vector>
 
 template <class T>
-unsigned int generateAttribute(int id, int elementsPerEntry, std::vector<T> data, bool normalize) {
-    unsigned int bufferID;
+GLuint generateAttribute(int id, int elementsPerEntry, std::vector<T> data, bool normalize) {
+    GLuint bufferID;
     glGenBuffers(1, &bufferID);
     glBindBuffer(GL_ARRAY_BUFFER, bufferID);
     glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(T), data.data(), GL_STATIC_DRAW);

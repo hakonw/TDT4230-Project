@@ -40,7 +40,7 @@ SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
 #define DEFAULT_ALLOWED_BOTS 100
-std::vector <Ship> bots;
+std::vector <Ship*> bots;
 //std::vector <Ship> &Ship::ships = bots;
 
 SceneNode* botsTeamA;
@@ -67,9 +67,7 @@ glm::vec3 ballPosition(0, ballRadius + padDimensions.y, boxDimensions.z / 2);
 
 CommandLineOptions options;
 
-bool hasStarted = false;
-bool hasLost = false;
-bool isPaused = false;
+bool isPaused = true;
 
 bool mouseLeftPressed   = false;
 bool mouseLeftReleased  = false;
@@ -99,7 +97,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     // Create meshes
     Mesh pad = cube(padDimensions, glm::vec2(30, 40), true);
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
-    Mesh sphere = generateSphere(1.0, 40, 40);
+    Mesh sphere = generateSphere(1.0f, 40, 40);
     //Mesh tet = tetrahedrons(glm::vec3(2.0f));
 
     // Fill buffers
@@ -122,9 +120,9 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     rootNode->addChild(botsTeamA);
 
     for (int i=0; i<DEFAULT_ALLOWED_BOTS; i++) {
-        Ship ship;
+        Ship* ship = new Ship();
         bots.push_back(ship);
-        botsTeamA->children.push_back(ship.sceneNode); // Add it to be rendered
+        botsTeamA->addChild(ship); // Add it to be rendered
     }
 
     // Lights
@@ -146,7 +144,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     staticLightNode->position = glm::vec3(5.0f, 0.0f, -1.0f);
 
     // From task 1, where each light had to be at a different place
-    bots.at(0).sceneNode->addChild(ballLightNode);
+    bots.at(0)->addChild(ballLightNode);
     padNode->addChild(ballLightNode);
     padNode->addChild(padLightNode);
     padNode->addChild(staticLightNode);
@@ -227,29 +225,31 @@ void updateAmountBots(float &currentFps, double &time) {
             printf("adaptive bot amount: Increasing bots with %i to a total of %i\n", deltaBots, bots.size()+deltaBots);
 
             // Activate old disabled bots
-            for (Ship s : bots) {
+            for (Ship *s : bots) {
                 if (deltaBots == 0) break;
-                if (!s.enabled) {
-                    s.enabled = true;
+                if (!s->enabled) {
+                    s->enabled = true;
                     deltaBots--;
                 }
             }
             // Add new bots if needed
             for (int i=0; i<deltaBots; i++) {
-                Ship ship;
+                Ship *ship = new Ship();
                 bots.push_back(ship);
-                botsTeamA->children.push_back(ship.sceneNode); // Add it to be rendered
+                botsTeamA->addChild(ship); // Add it to be rendered
             }
 
         } else if (deltaBots < 0) { // Remove bots
             printf("adaptive bot amount: Decreasing bots with %i to a total of %i\n", deltaBots, bots.size()+deltaBots);
             // Clean up old disabled bots, and then remove bots
             for (unsigned int i=bots.size()-1; i>minBots; i--) {
-                if (!bots.at(i).enabled) {
+                if (!bots.at(i)->enabled) {
+                    Ship* s = bots.at(i);
                     bots.erase(bots.begin()+i);
+                    delete(s);
                 } else {
                     if (deltaBots < 0) {
-                        bots.at(i).enabled = false;
+                        bots.at(i)->enabled = false;
                         deltaBots++; // Work towards 0
                     }
                 }
@@ -267,11 +267,12 @@ void updateFrame(GLFWwindow* window) {
     double timeDelta = getTimeDeltaSeconds();
 
     // FPS estimate
+    // Also responsible for adaptive bots amount
     frameCount++;
     sumTimeDelta += timeDelta;
     if (sumTimeDelta > 2.0f) {
         float fps = ((float)frameCount/(float)sumTimeDelta);
-        if (!isPaused) updateAmountBots(fps, sumTimeDelta);
+        if (!isPaused || true) updateAmountBots(fps, sumTimeDelta);
         printf("FPS: %f\n", fps);
         frameCount = 0;
         sumTimeDelta = 0;
@@ -292,24 +293,19 @@ void updateFrame(GLFWwindow* window) {
         mouseRightPressed = false;
     }
 
-    if(!hasStarted) {
-        if (mouseLeftPressed) {
-            hasStarted = true;
+    // Game logic, pausing
+    if (isPaused) {
+        if (mouseRightReleased) {
+            isPaused = false;
         }
     } else {
-        if (isPaused) {
-            if (mouseRightReleased) {
-                isPaused = false;
-            }
-        } else {
-            if (mouseRightReleased) {
-                isPaused = true;
-            }
+        if (mouseRightReleased) {
+            isPaused = true;
+        }
 
-            //bots.at(0).printShip();
-            for (unsigned int i=0; i < bots.size(); i++) {
-                bots.at(i).updateShip(timeDelta, bots);
-            }
+        //bots.at(0).printShip();
+        for (unsigned int i=0; i < bots.size(); i++) {
+            bots.at(i)->updateShip(timeDelta, bots);
         }
     }
 

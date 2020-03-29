@@ -8,11 +8,12 @@
 #include <vector>
 #include <cstdio>
 #include <stdbool.h>
-#include <cstdlib> 
-#include <ctime> 
+#include <cstdlib>
+#include <ctime>
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include "utilities/mesh.h"
 
 
 
@@ -38,25 +39,26 @@ public:
 
     // A list of all children that belong to this node.
     // For instance, in case of the scene graph of a human body shown in the assignment text, the "Upper Torso" node would contain the "Left Arm", "Right Arm", "Head" and "Lower Torso" nodes in its list of children.
-    std::vector<SceneNode*> children;
+    std::vector<SceneNode *> children;
 
     // The node's position and rotation relative to its parent
-    glm::vec3 position{};
-    glm::vec3 rotation{};
-    glm::vec3 scale{};
+    glm::vec3 position;
+    glm::vec3 rotation;
+    glm::vec3 scale;
 
     // A transformation matrix representing the transformation of the node's location relative to its parent. This matrix is updated every frame.
-    glm::mat4 currentTransformationMatrix{};
+    glm::mat4 currentTransformationMatrix;
 
     // Model transformation
-    glm::mat4 currentModelTransformationMatrix{};
+    glm::mat4 currentModelTransformationMatrix;
 
     // Normal matrix
-    glm::mat3 currentNormalMatrix{};
+    glm::mat3 currentNormalMatrix;
 
     // The location of the node's reference point
-    glm::vec3 referencePoint{};
+    glm::vec3 referencePoint;
 
+    // Mesh meta data object
     // The ID of the VAO containing the "appearance" of this SceneNode.
     int vertexArrayObjectID;
     unsigned int VAOIndexCount;
@@ -64,21 +66,21 @@ public:
     // Node type is used to determine how to handle the contents of a node
     SceneNodeType nodeType;
 
-    // OtherID, used for identifiying light
-    int lightSourceID{};
+    // OtherID, used for identifying light
+    int lightSourceID;
 
     // texture ID, Assigment 2 task 1h
-    unsigned int textureID{};
-    unsigned int normalMapTextureID{};
-    unsigned int roughnessMapID{};
+    unsigned int textureID;
+    unsigned int normalMapTextureID;
+    unsigned int roughnessMapID;
 
 
-    void addChild(SceneNode* child) {
+    void addChild(SceneNode *child) {
         SceneNode::children.push_back(child);
     }
 
     // Pretty prints the current values of a SceneNode instance to stdout
-    void printNode(SceneNode* node) {
+    void printNode() {
         printf(
                 "SceneNode {\n"
                 "    Child count: %i\n"
@@ -88,16 +90,20 @@ public:
                 "    VAO ID: %i\n"
                 "    Type: %i\n"
                 "}\n",
-                int(node->children.size()),
-                node->rotation.x, node->rotation.y, node->rotation.z,
-                node->position.x, node->position.y, node->position.z,
-                node->referencePoint.x, node->referencePoint.y, node->referencePoint.z,
-                node->vertexArrayObjectID, node->nodeType);
+                int(SceneNode::children.size()),
+                SceneNode::rotation.x, SceneNode::rotation.y, SceneNode::rotation.z,
+                SceneNode::position.x, SceneNode::position.y, SceneNode::position.z,
+                SceneNode::referencePoint.x, SceneNode::referencePoint.y, SceneNode::referencePoint.z,
+                SceneNode::vertexArrayObjectID, SceneNode::nodeType);
+    }
+
+    static void printNode(SceneNode *node) {
+        node->printNode();
     }
 
     int totalChildren() {
         int count = SceneNode::children.size();
-        for (SceneNode* child : SceneNode::children) {
+        for (SceneNode *child : SceneNode::children) {
             count += child->totalChildren();
         }
         return count;

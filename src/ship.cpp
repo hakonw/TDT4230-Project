@@ -14,20 +14,20 @@ void Ship::generateShipNode() {
     Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
     //Mesh m = tetrahedrons(glm::vec3(4.0f, 6.0f, 4.0f));
     unsigned int mVAO = generateBuffer(m);
-    this->sceneNode->vertexArrayObjectID = (int) mVAO;
-    this->sceneNode->VAOIndexCount = m.indices.size();
-    this->sceneNode->nodeType = SceneNode::GEOMETRY;
+    this->vertexArrayObjectID = (int) mVAO;
+    this->VAOIndexCount = m.indices.size();
+    this->nodeType = SceneNode::GEOMETRY;
 
-    this->sceneNode->position = glm::vec3(-4.0f, -49.0f, -100.0f);
+    this->position = glm::vec3(-4.0f, -49.0f, -100.0f);
 
     this->velocity = glm::ballRand(this->maxVelocity);
 }
 
-void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
+void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     this->acceleration = glm::vec3(0.0f);
 
     // Get all ships in proximity
-    const std::vector<Ship> closeShips = this->getShipsInRadius(ships);
+    const std::vector<Ship*> closeShips = this->getShipsInRadius(ships);
 
     // Rule 1: Separation
     glm::vec3 separationForce = getSeparationForce(closeShips);
@@ -56,10 +56,10 @@ void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
     this->velocity = speed * direction;
 
     // Update the ships possition
-    this->sceneNode->position += (float) deltaTime * this->velocity; // x = x0 + v*t todo inherit wrong?
+    this->position += (float) deltaTime * this->velocity; // x = x0 + v*t
 
     // Set rotation
-    this->sceneNode->rotation = direction;
+    this->rotation = direction;
 
     //printShip();
 }
@@ -67,14 +67,14 @@ void Ship::updateShip(double deltaTime, std::vector<Ship> &ships) {
 /// Calculate the separation force with a (linear) inverse proportional factor
 /// @param closeShips all ships within the perceptionRadius
 /// @return force for steering away from all neighbours
-glm::vec3 Ship::getSeparationForce(const std::vector<Ship> &closeShips) {
+glm::vec3 Ship::getSeparationForce(const std::vector<Ship*> &closeShips) {
     if (closeShips.empty()) return glm::vec3(0.0f);
 
     // Sum of forces, between 0 and 1
     glm::vec3 separationForce = glm::vec3(0.0f);
-    for (Ship s : closeShips) {
+    for (const Ship* s : closeShips) {
         // vec from s to this
-        glm::vec3 sepF = this->sceneNode->position - s.sceneNode->position;
+        glm::vec3 sepF = this->position - s->position;
         float l = glm::length(sepF);
 
         if (l == 0) { // if they get inside of each other, use random vector
@@ -89,12 +89,12 @@ glm::vec3 Ship::getSeparationForce(const std::vector<Ship> &closeShips) {
 /// Calculate the alignment force
 /// @param closeShips all ships within the perceptionRadius
 /// @return force for steering along the average velocity
-glm::vec3 Ship::getAlignmentForce(const std::vector<Ship> &closeShips) {
+glm::vec3 Ship::getAlignmentForce(const std::vector<Ship*> &closeShips) {
     if (closeShips.empty()) return glm::vec3(0.0f);
 
     glm::vec3 averageVelocity = glm::vec3(0.0f);
-    for (Ship s : closeShips) {
-        averageVelocity += s.velocity;
+    for (const Ship* s : closeShips) {
+        averageVelocity += s->velocity;
     }
     //averageVelocity /= closeShips.size(); // Not needed, but nice for visualization of the math
     return getForceFromVec(averageVelocity);
@@ -103,17 +103,17 @@ glm::vec3 Ship::getAlignmentForce(const std::vector<Ship> &closeShips) {
 /// Calculate the cohesion force
 /// @param closeShips all ships within the perceptionRadius
 /// @return force for steering towards the average position
-glm::vec3 Ship::getCohesionForce(const std::vector<Ship> &closeShips) { // TODO weighted?
+glm::vec3 Ship::getCohesionForce(const std::vector<Ship*> &closeShips) { // TODO weighted?
     if (closeShips.empty()) return glm::vec3(0.0f);
 
     glm::vec3 centerOfFlock = glm::vec3(0.0f);
-    for (Ship s : closeShips) {
-        centerOfFlock += s.sceneNode->position;
+    for (Ship* s : closeShips) {
+        centerOfFlock += s->position;
     }
     centerOfFlock /= closeShips.size();
 
     // Vector from ship to center of flock
-    glm::vec3 shipToFlock = centerOfFlock - this->sceneNode->position;
+    glm::vec3 shipToFlock = centerOfFlock - this->position;
     return getForceFromVec(shipToFlock);
 }
 
@@ -130,11 +130,11 @@ glm::vec3 Ship::getForceFromVec(const glm::vec3 &vec, bool vecDiff) {
     return limitVector(desiredVector, this->maxForce);
 }
 
-std::vector<Ship> Ship::getShipsInRadius(std::vector<Ship> &ships) {
-    std::vector<Ship> returnList;
-    for (Ship ship2 : ships) {
-        if (this != &ship2) { // TODO validate correct cpp
-            if (glm::length(this->sceneNode->position - ship2.sceneNode->position) <= this->perceptionRadius) {
+std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
+    std::vector<Ship*> returnList;
+    for (Ship* ship2 : ships) {
+        if (this != ship2) {
+            if (glm::length(this->position - ship2->position) <= this->perceptionRadius) {
                 returnList.push_back(ship2);
             }
         }
@@ -151,9 +151,9 @@ const glm::vec3 boxOffset(0, -10, -80);
 const glm::vec3 boxDimensions(180, 90, 90);
 
 void Ship::barrierSafetyNet() {
-    float x = this->sceneNode->position.x;
-    float y = this->sceneNode->position.y;
-    float z = this->sceneNode->position.z;
+    float x = this->position.x;
+    float y = this->position.y;
+    float z = this->position.z;
 
     float mf = this->maxForce;
 
@@ -187,7 +187,7 @@ void Ship::printShip() {
             "    Acceleration: (%f, %f, %f) - %f\n"
             "}\n",
             this->id,
-            this->sceneNode->position.x, this->sceneNode->position.y, this->sceneNode->position.z,
+            this->position.x, this->position.y, this->position.z,
             this->velocity.x, this->velocity.y, this->velocity.z, glm::length(this->velocity),
             this->acceleration.x, this->acceleration.y, this->acceleration.z, glm::length(this->acceleration)
             );

@@ -1,5 +1,6 @@
 #pragma once
 
 #include "mesh.h"
+#include <gl/gl.h>
 
-unsigned int generateBuffer(Mesh &mesh);
+GLuint generateBuffer(Mesh &mesh);
