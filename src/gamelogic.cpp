@@ -222,8 +222,6 @@ void updateAmountBots(float &currentFps, double &time) {
         if (bots.size() + deltaBots < minBots) deltaBots = bots.size() - minBots;
 
         if (deltaBots > 0) { // Add bots
-            printf("adaptive bot amount: Increasing bots with %i to a total of %i\n", deltaBots, bots.size()+deltaBots);
-
             // Activate old disabled bots
             for (Ship *s : bots) {
                 if (deltaBots == 0) break;
@@ -238,17 +236,17 @@ void updateAmountBots(float &currentFps, double &time) {
                 bots.push_back(ship);
                 botsTeamA->addChild(ship); // Add it to be rendered
             }
+            printf("adaptive bot amount: Increasing bots with %i to a total of %i\n", deltaBots, bots.size());
 
         } else if (deltaBots < 0) { // Remove bots
-            printf("adaptive bot amount: Decreasing bots with %i to a total of %i\n", deltaBots, bots.size()+deltaBots);
             // Clean up old disabled bots, and then remove bots
             for (unsigned int i=bots.size()-1; i>minBots; i--) {
                 if (!bots.at(i)->enabled) {
-                    //Ship* s = bots.at(i);
-                    //assert(bots.at(i) == botsTeamA->children.at(i));
-                    //bots.erase(bots.begin()+i);
-                    //botsTeamA->children.erase(botsTeamA->children.begin()+i); // TODO fix unsafe
-                    //delete(s);
+                    Ship* s = bots.at(i);
+                    assert(bots.at(i) == botsTeamA->children.at(i));
+                    bots.erase(bots.begin()+i);
+                    botsTeamA->children.erase(botsTeamA->children.begin()+i);
+                    delete(s);
                 } else {
                     if (deltaBots < 0) {
                         bots.at(i)->enabled = false;
@@ -256,6 +254,7 @@ void updateAmountBots(float &currentFps, double &time) {
                     }
                 }
             }
+            printf("adaptive bot amount: Decreasing bots with %i to a total of %i\n", deltaBots, bots.size());
         }
     }
 }

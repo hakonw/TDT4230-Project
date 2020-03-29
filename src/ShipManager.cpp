@@ -13,12 +13,15 @@ int calculateAmountAdaptiveUpdateAmountBots(float &currentFps, double &time) {
 
         if (newlyUpdate) {
             float diffFps = preUpdateFps - weightedAverageFps; // Estimated change (dip) in fps due to spawning
-            if (diffFps < 2.0f) { // Insignificant fps
-                botsPerFps = fallbackBotsPerFps * (float)sgn(diffFps);
+            if (abs(diffFps) < fallbackBotsPerFps) { // Insignificant fps, default in case of instability
+                printf("insig %f\n", diffFps);
+                botsPerFps = fallbackBotsPerFps;
             } else {
                 botsPerFps = (float) deltaBots / diffFps;
             }
+            botsPerFps = abs(botsPerFps); // Inpact based on over or under tresh
             newlyUpdate = false;
+            printf("bpfps %f\n", botsPerFps);
         }
 
         if (weightedAverageFps < (float) (targetFps - allowedFpsDelta) // Fps is under or over threshold

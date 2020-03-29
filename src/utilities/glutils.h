@@ -1,6 +1,6 @@
 #pragma once
 
 #include "mesh.h"
-#include <gl/gl.h>
+#include <glad/glad.h>
 
 GLuint generateBuffer(Mesh &mesh);
