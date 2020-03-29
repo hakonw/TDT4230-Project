@@ -10,7 +10,7 @@ const static unsigned int allowedFpsDelta = 10; // Try to stay inside 60+-10 fps
 
 static float weightedAverageFps = 0; // Should hovered around targetFps
 
-static double totalTime = 0;
+static double totalTimeSinceLastUpdate = 0;
 const static double allowedUpdateRate = 5.0f; // How often is it allowed to update the number of bots
 
 static bool newlyUpdate = false;

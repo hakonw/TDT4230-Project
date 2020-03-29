@@ -219,7 +219,7 @@ void updateAmountBots(float &currentFps, double &time) {
     // Only update bots if inside limits
     if (bots.size() > minBots && bots.size() < maxBots) {
         int deltaBots = calculateAmountAdaptiveUpdateAmountBots(currentFps, time);
-        if (bots.size() - deltaBots < minBots) deltaBots = bots.size() - minBots;
+        if (bots.size() + deltaBots < minBots) deltaBots = bots.size() - minBots;
 
         if (deltaBots > 0) { // Add bots
             printf("adaptive bot amount: Increasing bots with %i to a total of %i\n", deltaBots, bots.size()+deltaBots);
@@ -244,9 +244,11 @@ void updateAmountBots(float &currentFps, double &time) {
             // Clean up old disabled bots, and then remove bots
             for (unsigned int i=bots.size()-1; i>minBots; i--) {
                 if (!bots.at(i)->enabled) {
-                    Ship* s = bots.at(i);
-                    bots.erase(bots.begin()+i);
-                    delete(s);
+                    //Ship* s = bots.at(i);
+                    //assert(bots.at(i) == botsTeamA->children.at(i));
+                    //bots.erase(bots.begin()+i);
+                    //botsTeamA->children.erase(botsTeamA->children.begin()+i); // TODO fix unsafe
+                    //delete(s);
                 } else {
                     if (deltaBots < 0) {
                         bots.at(i)->enabled = false;
@@ -379,27 +381,31 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
         case SceneNode::GROUP: break;
     }
 
+    int i = 0;
     for(SceneNode* child : node->children) {
+        i++;
+        assert(child != node);
         updateNodeTransformations(child, VP, node->currentModelTransformationMatrix);
     }
 }
 
 void renderNode(SceneNode* node) {
-    // MVP
-    glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(node->currentTransformationMatrix));
-    // Matrix M
-    glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(node->currentModelTransformationMatrix));
-    // pass normal matrix to the vertex shader
-    glUniformMatrix3fv(5, 1, GL_FALSE, glm::value_ptr(node->currentNormalMatrix));
+    if (node->enabled) {
+        // MVP
+        glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(node->currentTransformationMatrix));
+        // Matrix M
+        glUniformMatrix4fv(4, 1, GL_FALSE, glm::value_ptr(node->currentModelTransformationMatrix));
+        // pass normal matrix to the vertex shader
+        glUniformMatrix3fv(5, 1, GL_FALSE, glm::value_ptr(node->currentNormalMatrix));
 
-    switch(node->nodeType) {
-        case SceneNode::GEOMETRY:
-            if(node->vertexArrayObjectID != -1) {
-                glBindVertexArray((GLuint)(node->vertexArrayObjectID));
-                glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
-            }
-            break;
-        case SceneNode::GEOMETRY_NORMAL_MAPPED:
+        switch(node->nodeType) {
+            case SceneNode::GEOMETRY:
+                if(node->vertexArrayObjectID != -1) {
+                    glBindVertexArray((GLuint)(node->vertexArrayObjectID));
+                    glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+                }
+                break;
+            case SceneNode::GEOMETRY_NORMAL_MAPPED:
             {
                 glUniform1i(7, 1); // useTexture
                 glUniform1i(8, 1); // useNormalMap
@@ -416,10 +422,11 @@ void renderNode(SceneNode* node) {
                 glUniform1i(8, 0);
                 glUniform1i(9, 0);
             }
-            break;
-        case SceneNode::POINT_LIGHT: break;
-        case SceneNode::SPOT_LIGHT: break;
-        case SceneNode::GROUP: break;
+                break;
+            case SceneNode::POINT_LIGHT: break;
+            case SceneNode::SPOT_LIGHT: break;
+            case SceneNode::GROUP: break;
+        }
     }
 
     for(SceneNode* child : node->children) {

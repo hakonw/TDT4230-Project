@@ -1,5 +1,4 @@
 #include "ship.h"
-#include <utilities/mesh.h>
 #include <utilities/shapes.h>
 #include <utilities/glutils.h>
 #include "sceneGraph.hpp"
@@ -7,19 +6,27 @@
 #include <glm/vec3.hpp>
 
 // Sometimes i get mad at cpp
+// Static variables
 unsigned int Ship::total = 0;
+unsigned int Ship::textureVaoId;
+unsigned int Ship::textureIndicesCount;
+bool Ship::textureCached = false;
 
 void Ship::generateShipNode() {
-    const glm::vec3 dboxDimensions(4, 3, 2);
-    Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
-    //Mesh m = tetrahedrons(glm::vec3(4.0f, 6.0f, 4.0f));
-    unsigned int mVAO = generateBuffer(m);
-    this->vertexArrayObjectID = (int) mVAO;
-    this->VAOIndexCount = m.indices.size();
+    if (!textureCached) {
+        const glm::vec3 dboxDimensions(4, 3, 2);
+        Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
+        //Mesh m = tetrahedrons(glm::vec3(4.0f, 6.0f, 4.0f));
+        unsigned int mVAO = generateBuffer(m);
+        Ship::textureVaoId = mVAO;
+        Ship::textureIndicesCount = m.indices.size();
+        Ship::textureCached = true;
+    }
+    this->vertexArrayObjectID = (int) Ship::textureVaoId;
+    this->VAOIndexCount = Ship::textureIndicesCount;
     this->nodeType = SceneNode::GEOMETRY;
 
     this->position = glm::vec3(-4.0f, -49.0f, -100.0f);
-
     this->velocity = glm::ballRand(this->maxVelocity);
 }
 
@@ -59,7 +66,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     this->position += (float) deltaTime * this->velocity; // x = x0 + v*t
 
     // Set rotation
-    this->rotation = direction;
+    this->rotation = normalize(direction);
 
     //printShip();
 }

@@ -34,8 +34,12 @@ public:
         vertexArrayObjectID = -1;
         VAOIndexCount = 0;
 
+        enabled = true;
         nodeType = GEOMETRY;
     }
+
+    // To draw or not to draw
+    bool enabled;
 
     // A list of all children that belong to this node.
     // For instance, in case of the scene graph of a human body shown in the assignment text, the "Upper Torso" node would contain the "Left Arm", "Right Arm", "Head" and "Lower Torso" nodes in its list of children.
@@ -76,7 +80,7 @@ public:
 
 
     void addChild(SceneNode *child) {
-        SceneNode::children.push_back(child);
+        this->children.push_back(child);
     }
 
     // Pretty prints the current values of a SceneNode instance to stdout

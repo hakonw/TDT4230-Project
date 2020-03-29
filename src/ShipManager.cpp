@@ -6,15 +6,15 @@ int calculateAmountAdaptiveUpdateAmountBots(float &currentFps, double &time) {
     // Arbitrary weighted fps
     weightedAverageFps = (weightedAverageFps + currentFps) / 2;
 
-    totalTime += time;
+    totalTimeSinceLastUpdate += time;
 
-    if (totalTime > allowedUpdateRate) {
-        totalTime = 0;
+    if (totalTimeSinceLastUpdate > allowedUpdateRate) {
+        totalTimeSinceLastUpdate = 0;
 
         if (newlyUpdate) {
             float diffFps = preUpdateFps - weightedAverageFps; // Estimated change (dip) in fps due to spawning
             if (diffFps < 2.0f) { // Insignificant fps
-                botsPerFps = fallbackBotsPerFps;
+                botsPerFps = fallbackBotsPerFps * (float)sgn(diffFps);
             } else {
                 botsPerFps = (float) deltaBots / diffFps;
             }

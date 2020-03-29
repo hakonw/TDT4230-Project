@@ -7,6 +7,10 @@ private:
     static unsigned int total;
     unsigned int id;
 
+    static unsigned int textureVaoId;
+    static unsigned int textureIndicesCount;
+    static bool textureCached;
+
     float minVelocity = 50.0f;
     float maxVelocity = 80.0f;
     float perceptionRadius = 60.0f;
@@ -24,8 +28,6 @@ private:
     void barrierSafetyNet();
 
 public:
-    bool enabled = true;
-
     glm::vec3 acceleration = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 velocity = glm::vec3(1.0f, 1.0f, 1.0f);
 
