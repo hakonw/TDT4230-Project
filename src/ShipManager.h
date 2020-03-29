@@ -17,6 +17,7 @@ static bool newlyUpdate = false;
 static float preUpdateFps = 0;
 static int deltaBots = 10;
 
+static bool dipDetected = false;
 const static int maxChangeInBots = 100.0f; // Not allowed to remove or add more than 20 bots
 const static float fallbackBotsPerFps = 1.0f;
 static float botsPerFps = 2.0f; // How much each new bot impacted the fps, example 2 => 2 reduction in fps per bot

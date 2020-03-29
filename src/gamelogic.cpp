@@ -240,6 +240,7 @@ void updateAmountBots(float &currentFps, double &time) {
 
         } else if (deltaBots < 0) { // Remove bots
             // Clean up old disabled bots, and then remove bots
+            int tmpDeltaBots = deltaBots;
             for (unsigned int i=bots.size()-1; i>minBots; i--) {
                 if (!bots.at(i)->enabled) {
                     Ship* s = bots.at(i);
@@ -248,9 +249,11 @@ void updateAmountBots(float &currentFps, double &time) {
                     botsTeamA->children.erase(botsTeamA->children.begin()+i);
                     delete(s);
                 } else {
-                    if (deltaBots < 0) {
+                    if (tmpDeltaBots < 0) {
                         bots.at(i)->enabled = false;
-                        deltaBots++; // Work towards 0
+                        tmpDeltaBots++; // Work towards 0
+                    } else if (tmpDeltaBots == 0) {
+                        break;
                     }
                 }
             }
@@ -380,9 +383,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
         case SceneNode::GROUP: break;
     }
 
-    int i = 0;
     for(SceneNode* child : node->children) {
-        i++;
         assert(child != node);
         updateNodeTransformations(child, VP, node->currentModelTransformationMatrix);
     }

@@ -1,10 +1,14 @@
 #include "ShipManager.h"
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 
 int calculateAmountAdaptiveUpdateAmountBots(float &currentFps, double &time) {
     // Arbitrary weighted fps
     weightedAverageFps = (weightedAverageFps + currentFps) / 2;
+
+    if(currentFps < (float) (targetFps - allowedFpsDelta)) {
+        dipDetected = true;
+    }
 
     totalTimeSinceLastUpdate += time;
 
@@ -13,13 +17,13 @@ int calculateAmountAdaptiveUpdateAmountBots(float &currentFps, double &time) {
 
         if (newlyUpdate) {
             float diffFps = preUpdateFps - weightedAverageFps; // Estimated change (dip) in fps due to spawning
-            if (abs(diffFps) < fallbackBotsPerFps) { // Insignificant fps, default in case of instability
+            if (std::abs(diffFps) < fallbackBotsPerFps) { // Insignificant fps, default in case of instability
                 printf("insig %f\n", diffFps);
                 botsPerFps = fallbackBotsPerFps;
             } else {
                 botsPerFps = (float) deltaBots / diffFps;
             }
-            botsPerFps = abs(botsPerFps); // Inpact based on over or under tresh
+            botsPerFps = std::abs(botsPerFps); // Inpact based on over or under tresh
             newlyUpdate = false;
             printf("bpfps %f\n", botsPerFps);
         }
@@ -36,10 +40,14 @@ int calculateAmountAdaptiveUpdateAmountBots(float &currentFps, double &time) {
 }
 
 int calculateBotDiff(float current, unsigned int target, float bpfps) {
-    if (abs(bpfps) < 0.0001f) {
+    if (std::abs(bpfps) < 0.0001f) {
         bpfps = 0.01f * (float) sgn(bpfps);
     }
     int estimatedBots = (int) truncf(bpfps * (current - (float) target));
+    if (dipDetected && estimatedBots > 0) {
+        dipDetected = false;
+        estimatedBots = -10; // Force it to remove bots in there is a dip detected and we are around target fps
+    }
     estimatedBots = clamp(estimatedBots, -maxChangeInBots, maxChangeInBots); // As bpfps is not a linear relation, clamp it
     return estimatedBots;
 }
