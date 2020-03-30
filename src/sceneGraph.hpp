@@ -21,7 +21,7 @@ private:
 
 public:
     enum SceneNodeType {
-        GEOMETRY, POINT_LIGHT, SPOT_LIGHT, GEOMETRY_NORMAL_MAPPED, GROUP
+        GEOMETRY, POINT_LIGHT, SPOT_LIGHT, GEOMETRY_NORMAL_MAPPED, GROUP, LINE
     };
 
     SceneNode() {

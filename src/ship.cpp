@@ -16,7 +16,7 @@ void Ship::generateShipNode() {
     if (!textureCached) {
         //const glm::vec3 dboxDimensions(4, 3, 2);
         //Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
-        Mesh m = tetrahedrons(glm::vec3(4.0f, 4.0f, 8.0f));
+        Mesh m = generateTetrahedron(glm::vec3(4.0f, 4.0f, 8.0f));
         unsigned int mVAO = generateBuffer(m);
         Ship::textureVaoId = mVAO;
         Ship::textureIndicesCount = m.indices.size();

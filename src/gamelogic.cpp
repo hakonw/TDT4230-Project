@@ -39,6 +39,8 @@ SceneNode* ballLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
+SceneNode* lineTest = new SceneNode();
+
 #define DEFAULT_ALLOWED_BOTS 100
 std::vector <Ship*> bots;
 //std::vector <Ship> &Ship::ships = bots;
@@ -53,7 +55,7 @@ void renderNode(SceneNode* node);
 
 #define NUM_POINT_LIGHTS 3
 
-double ballRadius = 3.0f;
+double ballRadius = 10.0f;
 
 // These are heap allocated, because they should not be initialised at the start of the program
 Gloom::Shader* shader;
@@ -97,7 +99,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     // Create meshes
     Mesh pad = cube(padDimensions, glm::vec2(30, 40), true);
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
-    Mesh sphere = generateSphere(1.0f, 40, 40);
+    Mesh sphere = generateSphere(1.0f, 5, 5);
     //Mesh tet = tetrahedrons(glm::vec3(2.0f));
 
     // Fill buffers
@@ -192,12 +194,31 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->textureID = brickTextureID;
     boxNode->roughnessMapID = brickRoughMapID;
 
+    Mesh line = generateUnitLine();
+    //line = generateTetrahedron(glm::vec3(2.0f));
+    unsigned int lineVAO = generateBuffer(line);
+    rootNode->addChild(lineTest);
+    lineTest->nodeType = SceneNode::LINE;
+    lineTest->vertexArrayObjectID = lineVAO;
+    lineTest->VAOIndexCount = line.indices.size();
+    lineTest->scale = glm::vec3(100.0f);
+    lineTest->rotation = glm::vec3(5.0f);
+    lineTest->position = ballPosition;
+
+    //GLfloat lineWidthRange[2];
+    //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
+    glLineWidth(5);
+
 
     getTimeDeltaSeconds();
 
     std::cout << fmt::format("Initialized scene with {} SceneNodes.", rootNode->totalChildren()) << std::endl;
 
     std::cout << "Ready. Click to start!" << std::endl;
+
+    // Debug settings
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glDisable(GL_CULL_FACE);
 }
 
 unsigned int getTextureID(PNGImage* img) {
@@ -276,7 +297,7 @@ void updateFrame(GLFWwindow* window) {
     sumTimeDelta += timeDelta;
     if (sumTimeDelta > 2.0f) {
         float fps = ((float)frameCount/(float)sumTimeDelta);
-        if (!isPaused || true) updateAmountBots(fps, sumTimeDelta);
+        if (!isPaused) updateAmountBots(fps, sumTimeDelta);
         printf("FPS: %f\n", fps);
         frameCount = 0;
         sumTimeDelta = 0;
@@ -406,26 +427,34 @@ void renderNode(SceneNode* node) {
                 }
                 break;
             case SceneNode::GEOMETRY_NORMAL_MAPPED:
-            {
-                glUniform1i(7, 1); // useTexture
-                glUniform1i(8, 1); // useNormalMap
-                glUniform1i(9, 1); // useRoughnessMap
-                glBindTextureUnit(1, node->textureID);
-                glBindTextureUnit(2, node->normalMapTextureID);
-                glBindTextureUnit(3, node->roughnessMapID);
+                {
+                    glUniform1i(7, 1); // useTexture
+                    glUniform1i(8, 1); // useNormalMap
+                    glUniform1i(9, 1); // useRoughnessMap
+                    glBindTextureUnit(1, node->textureID);
+                    glBindTextureUnit(2, node->normalMapTextureID);
+                    glBindTextureUnit(3, node->roughnessMapID);
 
-                if(node->vertexArrayObjectID != -1) {
-                    glBindVertexArray((GLuint)node->vertexArrayObjectID);
-                    glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+                    if(node->vertexArrayObjectID != -1) {
+                        glBindVertexArray((GLuint)node->vertexArrayObjectID);
+                        glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+                    }
+                    glUniform1i(7, 0);
+                    glUniform1i(8, 0);
+                    glUniform1i(9, 0);
                 }
-                glUniform1i(7, 0);
-                glUniform1i(8, 0);
-                glUniform1i(9, 0);
-            }
                 break;
             case SceneNode::POINT_LIGHT: break;
             case SceneNode::SPOT_LIGHT: break;
             case SceneNode::GROUP: break;
+            case SceneNode::LINE:
+                {
+                    if(node->vertexArrayObjectID != -1) {
+                        glBindVertexArray((GLuint)node->vertexArrayObjectID);
+                        glDrawElements(GL_LINES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+                    }
+                }
+                break;
         }
     }
 

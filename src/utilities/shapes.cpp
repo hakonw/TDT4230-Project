@@ -29,7 +29,7 @@
  *                        2
  */
 
-Mesh tetrahedrons(const glm::vec3 scale) {
+Mesh generateTetrahedron(const glm::vec3 scale) {
     Mesh m;
 
     const float length = 1.0f; // DO NOT CHANGE
@@ -83,6 +83,19 @@ Mesh tetrahedrons(const glm::vec3 scale) {
         glm::vec3 n = glm::normalize(glm::cross(b-a, c-a));
         m.normals.push_back(n);
     }
+
+    return m;
+}
+
+Mesh generateUnitLine(){
+    Mesh m;
+    m.indices.push_back(0);
+    m.indices.push_back(1);
+
+    m.vertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+    m.vertices.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+
+    m.normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 
     return m;
 }
