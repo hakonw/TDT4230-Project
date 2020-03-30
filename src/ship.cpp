@@ -14,9 +14,9 @@ bool Ship::textureCached = false;
 
 void Ship::generateShipNode() {
     if (!textureCached) {
-        const glm::vec3 dboxDimensions(4, 3, 2);
-        Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
-        //Mesh m = tetrahedrons(glm::vec3(4.0f, 6.0f, 4.0f));
+        //const glm::vec3 dboxDimensions(4, 3, 2);
+        //Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
+        Mesh m = tetrahedrons(glm::vec3(4.0f, 4.0f, 8.0f));
         unsigned int mVAO = generateBuffer(m);
         Ship::textureVaoId = mVAO;
         Ship::textureIndicesCount = m.indices.size();
@@ -66,7 +66,11 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     this->position += (float) deltaTime * this->velocity; // x = x0 + v*t
 
     // Set rotation
-    this->rotation = normalize(direction);
+    glm::vec3 dir = normalize(direction);
+    float pitch = std::asin(-dir.y);
+    float yaw = std::atan2(dir.x, dir.z);
+    // TODO find a way to calculate roll
+    this->rotation = glm::vec3(pitch, yaw, 0.0f);
 
     //printShip();
 }
