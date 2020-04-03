@@ -1,5 +1,5 @@
-#version 430 core
-//#extension GL_ARB_explicit_uniform_location : require
+#version 420 core
+#extension GL_ARB_explicit_uniform_location : require
 
 in layout(location = 0) vec3 normalUniform;
 in layout(location = 1) vec2 textureCoordinates;
