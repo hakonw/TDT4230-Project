@@ -13,14 +13,15 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <fmt/format.h>
 #include "gamelogic.h"
-#include "sceneGraph.hpp"
+#include "objects/sceneGraph.hpp"
+#include "utilities/imageLoader.hpp"
+#include "objects/ship.h"
+#include "objects/ShipManager.h"
+#include "utilities/camera.hpp"
+#include "objects/laser.h"
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
-
-#include "utilities/imageLoader.hpp"
-#include "ship.h"
-#include "ShipManager.h"
-#include "utilities/camera.hpp"
 
 enum KeyFrameAction {
     BOTTOM, TOP
@@ -39,6 +40,7 @@ SceneNode* ballLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
+Laser* lineTest2;
 SceneNode* lineTest = new SceneNode();
 
 #define DEFAULT_ALLOWED_BOTS 100
@@ -205,9 +207,13 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     lineTest->rotation = glm::vec3(5.0f);
     lineTest->position = ballPosition;
 
+    Ship* s1 = bots.at(0);
+    lineTest2 = new Laser(s1->position, s1->velocity);
+    rootNode->addChild(lineTest2);
+
     //GLfloat lineWidthRange[2];
     //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
-    glLineWidth(5);
+    glLineWidth(12);
 
 
     getTimeDeltaSeconds();
@@ -257,7 +263,7 @@ void updateAmountBots(float &currentFps, double &time) {
                 bots.push_back(ship);
                 botsTeamA->addChild(ship); // Add it to be rendered
             }
-            printf("adaptive bot amount: Increasing bots with %i to a total of %i\n", deltaBots, bots.size());
+            printf("adaptive bot amount: Increasing bots with %i to a total of %lu\n", deltaBots, bots.size());
 
         } else if (deltaBots < 0) { // Remove bots
             // Clean up old disabled bots, and then remove bots
@@ -278,7 +284,7 @@ void updateAmountBots(float &currentFps, double &time) {
                     }
                 }
             }
-            printf("adaptive bot amount: Decreasing bots with %i to a total of %i\n", deltaBots, bots.size());
+            printf("adaptive bot amount: Decreasing bots with %i to a total of %lu\n", deltaBots, bots.size());
         }
     }
 }
@@ -332,6 +338,7 @@ void updateFrame(GLFWwindow* window) {
         for (unsigned int i=0; i < bots.size(); i++) {
             bots.at(i)->updateShip(timeDelta, bots);
         }
+        lineTest2->update(timeDelta);
     }
 
     glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
@@ -402,6 +409,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
             break;
         case SceneNode::SPOT_LIGHT: break;
         case SceneNode::GROUP: break;
+        case SceneNode::LINE: break;
     }
 
     for(SceneNode* child : node->children) {

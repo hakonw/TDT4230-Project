@@ -1,7 +1,7 @@
 #pragma once
 
 #include <utilities/window.hpp>
-#include "sceneGraph.hpp"
+#include "objects/sceneGraph.hpp"
 
 //void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transformationThusFar);
 void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transformationThusFar);

@@ -66,11 +66,8 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     this->position += (float) deltaTime * this->velocity; // x = x0 + v*t
 
     // Set rotation
-    glm::vec3 dir = normalize(direction);
-    float pitch = std::asin(-dir.y);
-    float yaw = std::atan2(dir.x, dir.z);
     // TODO find a way to calculate roll
-    this->rotation = glm::vec3(pitch, yaw, 0.0f);
+    this->rotation = calcEulerAngles(direction);
 
     //printShip();
 }

@@ -93,7 +93,7 @@ Mesh generateUnitLine(){
     m.indices.push_back(1);
 
     m.vertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-    m.vertices.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+    m.vertices.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
 
     m.normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
 

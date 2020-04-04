@@ -2,18 +2,9 @@
 
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
-#include <stack>
 #include <vector>
 #include <cstdio>
-#include <cstdlib>
-#include <ctime>
-#include <chrono>
-#include <fstream>
-#include <iostream>
-#include "utilities/mesh.h"
-
 
 
 class SceneNode {
@@ -112,3 +103,10 @@ public:
         return count;
     }
 };
+
+inline glm::vec3 calcEulerAngles(const glm::vec3 &direction) {
+    glm::vec3 dir = normalize(direction);
+    float pitch = std::asin(-dir.y);
+    float yaw = std::atan2(dir.x, dir.z);
+    return glm::vec3(pitch, yaw, 0.0f);
+}
