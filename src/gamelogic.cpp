@@ -1,6 +1,5 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
-#include <SFML/Audio/SoundBuffer.hpp>
 #include <utilities/shader.hpp>
 #include <glm/vec3.hpp>
 #include <iostream>
@@ -8,7 +7,6 @@
 #include <utilities/mesh.h>
 #include <utilities/shapes.h>
 #include <utilities/glutils.h>
-#include <SFML/Audio/Sound.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <fmt/format.h>
@@ -58,7 +56,6 @@ double ballRadius = 10.0f;
 
 // These are heap allocated, because they should not be initialised at the start of the program
 Gloom::Shader* shader;
-sf::Sound* sound;
 
 //const glm::vec3 boxDimensions(180, 90, 90);
 const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
