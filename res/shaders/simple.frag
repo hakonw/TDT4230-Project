@@ -116,6 +116,7 @@ void main()
         rejectionLeftover = max(rejectionLeftover, 1.0f);
         if (length(lightVec) < length(fragBallVec)) lightRatio = 1.0f; // special case 1
         if (dot(lightVec, fragBallVec) < 0) lightRatio = 1.0f; // special case 2
+        lightRatio = 1.0f;
 
         result += calcPointLight(pointLights[i], norm, fragPos, viewDir, lightDir, lightRatio);
     }

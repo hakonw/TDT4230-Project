@@ -32,7 +32,7 @@ double padPositionZ = 0;
 
 SceneNode* rootNode;
 SceneNode* boxNode;
-SceneNode* ballNode;
+SceneNode* skyDomeNode;
 SceneNode* padNode;
 SceneNode* ballLightNode;
 SceneNode* staticLightNode;
@@ -52,7 +52,7 @@ void renderNode(SceneNode* node);
 
 #define NUM_POINT_LIGHTS 3
 
-double ballRadius = 10.0f;
+double skyDomeRadius = 10.0f;
 
 // These are heap allocated, because they should not be initialised at the start of the program
 Gloom::Shader* shader;
@@ -60,7 +60,7 @@ Gloom::Shader* shader;
 //const glm::vec3 boxDimensions(180, 90, 90);
 const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
 
-glm::vec3 ballPosition(0, ballRadius, boxDimensions.z / 2);
+glm::vec3 skyDomePosition(0, 0, 0);
 
 CommandLineOptions options;
 
@@ -95,21 +95,20 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     // Create meshes
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
     Mesh sphere = generateSphere(1.0f, 5, 5);
-    //Mesh tet = tetrahedrons(glm::vec3(2.0f));
 
     // Fill buffers
-    unsigned int ballVAO = generateBuffer(sphere);
+    unsigned int sphereVAO = generateBuffer(sphere);
     unsigned int boxVAO  = generateBuffer(box);
 
     // Construct scene
     rootNode = new SceneNode();
     boxNode  = new SceneNode();
     padNode  = new SceneNode();
-    ballNode = new SceneNode();
+    skyDomeNode = new SceneNode();
 
     rootNode->addChild(boxNode);
     rootNode->addChild(padNode);
-    rootNode->addChild(ballNode);
+    rootNode->addChild(skyDomeNode);
 
     botsTeamA = new SceneNode(SceneNode::GROUP);
     rootNode->addChild(botsTeamA);
@@ -127,7 +126,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
     ballLightNode->nodeType = SceneNode::POINT_LIGHT;
     ballLightNode->lightSourceID = 0;
-    ballLightNode->position = glm::vec3(0.0f, ballRadius*1.01f, 0.0f);
+    ballLightNode->position = glm::vec3(0.0f, skyDomeRadius * 1.01f, 0.0f);
     //ballLightNode->position = glm::vec3(-5.0f, 0.0f, -1.0f);
 
     padLightNode->nodeType = SceneNode::POINT_LIGHT;
@@ -168,8 +167,8 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->VAOIndexCount = box.indices.size();
     boxNode->nodeType = SceneNode::GEOMETRY_NORMAL_MAPPED;
 
-    ballNode->vertexArrayObjectID = ballVAO;
-    ballNode->VAOIndexCount = sphere.indices.size();
+    skyDomeNode->vertexArrayObjectID = sphereVAO;
+    skyDomeNode->VAOIndexCount = sphere.indices.size();
 
 
     // Task 3 b
@@ -334,9 +333,9 @@ void updateFrame(GLFWwindow* window) {
     // Move and rotate various SceneNodes
     boxNode->position = { 0, -10, -80 };
 
-    ballNode->position = ballPosition;
-    ballNode->scale = glm::vec3(ballRadius);
-    ballNode->rotation = { 0, timeDelta*2, 0 };
+    skyDomeNode->position = skyDomePosition;
+    skyDomeNode->scale = glm::vec3(skyDomeRadius);
+    skyDomeNode->rotation = {0, 0, 0 };
 
     // update uniforms that doesnt change that often (once per draw)
     glUniform3fv(10, 1, glm::value_ptr(camera.getCameraPosition()));
@@ -365,7 +364,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
     node->currentNormalMatrix = glm::mat3(glm::transpose(glm::inverse(node->currentModelTransformationMatrix)));
 
     // push the ball node position to a uniform variable
-    if (node == ballNode) {
+    if (node == skyDomeNode) {
         glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
         glUniform3fv(11, 1, glm::value_ptr(pos));
     }
