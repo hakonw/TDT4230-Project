@@ -40,9 +40,6 @@ SceneNode* ballLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
-Laser* lineTest2;
-SceneNode* lineTest = new SceneNode();
-
 #define DEFAULT_ALLOWED_BOTS 100
 std::vector <Ship*> bots;
 //std::vector <Ship> &Ship::ships = bots;
@@ -74,6 +71,7 @@ CommandLineOptions options;
 bool isPaused = true;
 
 bool mouseLeftPressed   = false;
+bool mouseLeftCanToggle = true;
 bool mouseLeftReleased  = false;
 bool mouseRightPressed  = false;
 bool mouseRightReleased = false;
@@ -119,8 +117,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     rootNode->addChild(padNode);
     rootNode->addChild(ballNode);
 
-    botsTeamA = new SceneNode();
-    botsTeamA->nodeType = SceneNode::GROUP;
+    botsTeamA = new SceneNode(SceneNode::GROUP);
     rootNode->addChild(botsTeamA);
 
     for (int i=0; i<DEFAULT_ALLOWED_BOTS; i++) {
@@ -196,25 +193,9 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->textureID = brickTextureID;
     boxNode->roughnessMapID = brickRoughMapID;
 
-    Mesh line = generateUnitLine();
-    //line = generateTetrahedron(glm::vec3(2.0f));
-    unsigned int lineVAO = generateBuffer(line);
-    rootNode->addChild(lineTest);
-    lineTest->nodeType = SceneNode::LINE;
-    lineTest->vertexArrayObjectID = lineVAO;
-    lineTest->VAOIndexCount = line.indices.size();
-    lineTest->scale = glm::vec3(100.0f);
-    lineTest->rotation = glm::vec3(5.0f);
-    lineTest->position = ballPosition;
-
-    Ship* s1 = bots.at(0);
-    lineTest2 = new Laser(s1->position, s1->velocity);
-    rootNode->addChild(lineTest2);
-
     //GLfloat lineWidthRange[2];
     //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
-    glLineWidth(12);
-
+    glLineWidth(1);
 
     getTimeDeltaSeconds();
 
@@ -269,6 +250,7 @@ void updateAmountBots(float &currentFps, double &time) {
             // Clean up old disabled bots, and then remove bots
             int tmpDeltaBots = deltaBots;
             for (unsigned int i=bots.size()-1; i>minBots; i--) {
+                // TODO fix possible O(n^2), but has a low call rate, low pri
                 if (!bots.at(i)->enabled) {
                     Ship* s = bots.at(i);
                     assert(bots.at(i) == botsTeamA->children.at(i));
@@ -315,6 +297,7 @@ void updateFrame(GLFWwindow* window) {
     } else {
         mouseLeftReleased = mouseLeftPressed;
         mouseLeftPressed = false;
+        mouseLeftCanToggle = true;
     }
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2)) {
         mouseRightPressed = true;
@@ -338,7 +321,14 @@ void updateFrame(GLFWwindow* window) {
         for (unsigned int i=0; i < bots.size(); i++) {
             bots.at(i)->updateShip(timeDelta, bots);
         }
-        lineTest2->update(timeDelta);
+
+        if (mouseLeftPressed && mouseLeftCanToggle) {
+            mouseLeftCanToggle = false;
+            mouseLeftPressed = false;
+            for (Ship* s : bots) {
+                s->generateLaser();
+            }
+        }
     }
 
     glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
@@ -416,6 +406,12 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
         assert(child != node);
         updateNodeTransformations(child, VP, node->currentModelTransformationMatrix);
     }
+
+    if (node->getIndependentChildrenSize() > 0) {
+        for (SceneNode* child : node->getIndependentChildren()) {
+            updateNodeTransformations(child, VP, transformationThusFar);
+        }
+    }
 }
 
 void renderNode(SceneNode* node) {
@@ -468,6 +464,12 @@ void renderNode(SceneNode* node) {
 
     for(SceneNode* child : node->children) {
         renderNode(child);
+    }
+
+    if (node->getIndependentChildrenSize() > 0) {
+        for (SceneNode* child : node->getIndependentChildren()) {
+            renderNode(child);
+        }
     }
 }
 

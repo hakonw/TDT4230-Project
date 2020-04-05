@@ -28,12 +28,26 @@ public:
         nodeType = GEOMETRY;
     }
 
+    SceneNode(SceneNodeType type) : SceneNode() {
+        nodeType = type;
+    }
+
     // To draw or not to draw
     bool enabled;
 
     // A list of all children that belong to this node.
     // For instance, in case of the scene graph of a human body shown in the assignment text, the "Upper Torso" node would contain the "Left Arm", "Right Arm", "Head" and "Lower Torso" nodes in its list of children.
     std::vector<SceneNode *> children;
+
+    // List of children following inheriting movement from parent, but is still a child of this node.
+    // Must be overwritten by other classes
+    virtual unsigned int getIndependentChildrenSize() {
+        return 0;
+    }
+
+    virtual std::vector<SceneNode *> getIndependentChildren() {
+        return std::vector<SceneNode *>();
+    }
 
     // The node's position and rotation relative to its parent
     glm::vec3 position;
@@ -109,4 +123,15 @@ inline glm::vec3 calcEulerAngles(const glm::vec3 &direction) {
     float pitch = std::asin(-dir.y);
     float yaw = std::atan2(dir.x, dir.z);
     return glm::vec3(pitch, yaw, 0.0f);
+}
+
+// May have HAD undefined behaviour
+template<typename T>
+inline void removeElement(std::vector<T *> &vec, T *&element) {
+    for (unsigned int i = vec.size() - 1; i >= 0; i--) {
+        if (vec.at(i) == element) {
+            vec.erase(vec.begin() + i);
+            break;
+        }
+    }
 }

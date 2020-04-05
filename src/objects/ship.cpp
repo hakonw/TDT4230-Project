@@ -4,6 +4,7 @@
 #include "sceneGraph.hpp"
 #include <glm/gtc/random.hpp>
 #include <glm/vec3.hpp>
+#include "laser.h"
 
 // Sometimes i get mad at cpp
 // Static variables
@@ -68,6 +69,15 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     // Set rotation
     // TODO find a way to calculate roll
     this->rotation = calcEulerAngles(direction);
+
+    // Update lasers
+    for (Laser* &l : lasers) {
+        l->update(deltaTime);
+        // Clean up old lasers
+        if (!l->enabled) {
+            removeElement(this->lasers, l);
+        }
+    }
 
     //printShip();
 }
@@ -177,6 +187,12 @@ void Ship::barrierSafetyNet() {
     // -35 -> -125
     if (z > boxDimensions.z / 2 + boxOffset.z) this->acceleration.z = -mf;
     if (z < -boxDimensions.z / 2 + boxOffset.z) this->acceleration.z = mf;
+}
+
+void Ship::generateLaser() {
+    //LaserPtr l(new Laser(this->position, glm::normalize(this->velocity)));
+    Laser* l = new Laser(this->position, glm::normalize(this->velocity));
+    this->lasers.push_back(l);
 }
 
 glm::vec3 limitVector(const glm::vec3 &vec, float maxLength) {

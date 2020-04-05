@@ -1,8 +1,11 @@
 #pragma once
 
+#include <memory>
 #include "sceneGraph.hpp"
+#include "laser.h"
 
 class Ship : public SceneNode{
+    //typedef std::shared_ptr<Laser> LaserPtr; // Laser smart pointer alias
 private:
     static unsigned int total;
     unsigned int id;
@@ -27,12 +30,27 @@ private:
     glm::vec3 getForceFromVec(const glm::vec3 &vec, bool vecDiff=true);
     void barrierSafetyNet();
 
+    std::vector<Laser*> lasers;
+
 public:
+    static SceneNode* laserGroup;
+
     glm::vec3 acceleration = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 velocity = glm::vec3(1.0f, 1.0f, 1.0f);
 
     void generateShipNode();
     void updateShip(double deltaTime, std::vector<Ship*> &ships);
+    void generateLaser();
+
+    unsigned int getIndependentChildrenSize() override {
+        return lasers.size();
+    }
+    // TODO research if there is a "cheaper" way
+    // Alternatively, have a list of casted pointers, manage both lists OR castback
+    std::vector<SceneNode*> getIndependentChildren() override {
+        return std::vector<SceneNode*>(lasers.begin(), lasers.end());
+    }
+
     void printShip();
 
     Ship() : SceneNode(), id(++total) {

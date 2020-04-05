@@ -12,9 +12,9 @@ private:
     static unsigned int textureIndicesCount;
     static bool textureCached;
 
-    const float length = 8.0f;
-    const float velocityMagnitude = 10.0f;
-    const float lifeTime = 10.0f; // Lifetime in seconds before despawning
+    const float length = 10.0f;
+    const float velocityMagnitude = 160.0f;
+    const float lifeTime = 2.0f; // Lifetime in seconds before despawning
     float totalTime = 0;
 
     glm::vec3 direction;
@@ -36,16 +36,18 @@ public:
 
         this->position = pos;
         this->direction = glm::normalize(dir);
-        this->rotation = calcEulerAngles(direction);
+        this->rotation = calcEulerAngles(this->direction);
+        this->scale = glm::vec3(this->length);
     }
 
     void update(double deltaTime) {
-        totalTime+=(float)deltaTime;
+        totalTime += (float) deltaTime;
         if (totalTime < lifeTime) {
             this->position += (float) deltaTime * (this->direction * this->velocityMagnitude);
         } else {
-            // TODO find a good way to clean up
-            //this->~Laser(); // Deconstruct this
+            // Ask to be deleted
+            // TODO Ask to go back into a pool of lasers for later use?
+            this->enabled = false;
         }
 
     }
@@ -55,9 +57,5 @@ public:
     }
 
 };
-unsigned int Laser::textureVaoId;
-unsigned int Laser::textureIndicesCount;
-bool Laser::textureCached = false;
-
 
 #endif //GLOWBOX_LASER_H
