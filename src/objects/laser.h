@@ -17,7 +17,7 @@ private:
     const float lifeTime = 2.0f; // Lifetime in seconds before despawning
     float totalTime = 0;
 
-    glm::vec3 direction;
+    glm::vec3 direction{};
 
 
 public:

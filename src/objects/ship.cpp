@@ -71,11 +71,14 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     this->rotation = calcEulerAngles(direction);
 
     // Update lasers
-    for (Laser* &l : lasers) {
+    for (int i = (int)lasers.size() - 1; i >= 0; i--) {
+        Laser* l = lasers.at(i);
         l->update(deltaTime);
+
         // Clean up old lasers
         if (!l->enabled) {
-            removeElement(this->lasers, l);
+            lasers.erase(lasers.begin() + i);
+            delete l;
         }
     }
 

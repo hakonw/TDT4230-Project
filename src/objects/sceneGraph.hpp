@@ -116,6 +116,8 @@ public:
         }
         return count;
     }
+
+    virtual ~SceneNode() = default;
 };
 
 inline glm::vec3 calcEulerAngles(const glm::vec3 &direction) {
@@ -128,7 +130,7 @@ inline glm::vec3 calcEulerAngles(const glm::vec3 &direction) {
 // May have HAD undefined behaviour
 template<typename T>
 inline void removeElement(std::vector<T *> &vec, T *&element) {
-    for (unsigned int i = vec.size() - 1; i >= 0; i--) {
+    for (int i = vec.size() - 1; i >= 0; i--) {
         if (vec.at(i) == element) {
             vec.erase(vec.begin() + i);
             break;
