@@ -38,6 +38,8 @@ SceneNode* ballLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
+glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
+
 #define DEFAULT_ALLOWED_BOTS 100
 std::vector <Ship*> bots;
 //std::vector <Ship> &Ship::ships = bots;
@@ -55,10 +57,13 @@ void renderNode(SceneNode* node);
 double skyDomeRadius = 10.0f;
 
 // These are heap allocated, because they should not be initialised at the start of the program
-Gloom::Shader* shader;
+Gloom::Shader* defaultShader;
+Gloom::Shader* skyBoxShader;
+unsigned int skyBoxTextureID;
 
 //const glm::vec3 boxDimensions(180, 90, 90);
-const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
+//const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
+const glm::vec3 boxDimensions(250.0f, 250.0f, 250.0f);
 
 glm::vec3 skyDomePosition(0, 0, 0);
 
@@ -78,7 +83,7 @@ void mouseCallback(GLFWwindow* window, double x, double y) {
 
 void placeLight3fvVal(int id, std::string field, glm::vec3 v3) {
     std::string uniformName = fmt::format("pointLights[{}].{}", id, field);
-    GLint location = shader->getUniformFromName(uniformName);
+    GLint location = defaultShader->getUniformFromName(uniformName);
     glUniform3fv(location, 1, glm::value_ptr(v3));
 }
 
@@ -88,9 +93,13 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     glfwSetCursorPosCallback(window, mouseCallback);
 
-    shader = new Gloom::Shader();
-    shader->makeBasicShader("../res/shaders/simple.vert", "../res/shaders/simple.frag");
-    shader->activate();
+    defaultShader = new Gloom::Shader();
+    defaultShader->makeBasicShader("../res/shaders/simple.vert", "../res/shaders/simple.frag");
+    defaultShader->activate();
+
+    skyBoxShader = new Gloom::Shader();
+    skyBoxShader->makeBasicShader("../res/shaders/skybox.vert", "../res/shaders/skybox.frag");
+
 
     // Create meshes
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
@@ -182,6 +191,9 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->normalMapTextureID = brickNormalTextureID;
     boxNode->textureID = brickTextureID;
     boxNode->roughnessMapID = brickRoughMapID;
+
+    PNGImage skyBoxTexture = loadPNGFile("../res/textures/space1.png");
+    skyBoxTextureID = getTextureID(&skyBoxTexture);
 
     //GLfloat lineWidthRange[2];
     //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
@@ -321,7 +333,6 @@ void updateFrame(GLFWwindow* window) {
         }
     }
 
-    glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
 
     // Move camera and calculate view matrix
     camera.detectKeyboardInputs(window);
@@ -377,7 +388,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
                 glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
                 glm::vec3 pos3 = glm::vec3(pos)/pos.w;  // Correct the length
                 std::string uniformName = fmt::format("pointLights[{}].position", node->lightSourceID);
-                GLint location = shader->getUniformFromName(uniformName);
+                GLint location = defaultShader->getUniformFromName(uniformName);
                 glUniform3fv(location, 1, glm::value_ptr(pos3));
             }
             break;
@@ -457,10 +468,27 @@ void renderNode(SceneNode* node) {
     }
 }
 
+void renderSkybox(){
+    skyBoxShader->activate();
+    glDepthMask(GL_FALSE);
+    glBindTextureUnit(1, skyBoxTextureID);
+
+    glm::mat4 cameraTransform = camera.getViewMatrixRotOnly();
+    glm::mat4 VP = projection * cameraTransform;
+    glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(VP));
+
+    glBindVertexArray((GLuint)(boxNode->vertexArrayObjectID));
+    glDrawElements(GL_TRIANGLES, boxNode->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+
+    glDepthMask(GL_TRUE);
+    defaultShader->activate(); // Return to default shader
+
+}
+
 void renderFrame(GLFWwindow* window) {
     int windowWidth, windowHeight;
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
     glViewport(0, 0, (GLint)(windowWidth), (GLint)(windowHeight));
-
+    renderSkybox();
     renderNode(rootNode);
 }

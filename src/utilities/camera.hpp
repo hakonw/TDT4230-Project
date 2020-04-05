@@ -38,6 +38,8 @@ namespace Gloom
         /* Getter for the view matrix */
         glm::mat4 getViewMatrix() { return matView; }
 
+        glm::mat4 getViewMatrixRotOnly() { return matViewRot; }
+
         /* Handle keyboard button presses */
         std::vector<int> keys = {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, // WASD - Movement
                                  GLFW_KEY_Q, GLFW_KEY_E, // Q E - Up/down
@@ -223,6 +225,7 @@ namespace Gloom
             glm::mat4 matTranslate = glm::translate(glm::mat4(1.0f), -cPosition);
 
             // Update view matrix
+            matViewRot = matRotation;
             matView = matRotation * matTranslate;
         }
 
@@ -256,6 +259,8 @@ namespace Gloom
 
         // View matrix
         glm::mat4 matView;
+
+        glm::mat4 matViewRot;
     };
 }
 
