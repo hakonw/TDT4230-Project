@@ -59,9 +59,8 @@ Gloom::Shader* shader;
 
 //const glm::vec3 boxDimensions(180, 90, 90);
 const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
-const glm::vec3 padDimensions(30, 3, 40);
 
-glm::vec3 ballPosition(0, ballRadius + padDimensions.y, boxDimensions.z / 2);
+glm::vec3 ballPosition(0, ballRadius, boxDimensions.z / 2);
 
 CommandLineOptions options;
 
@@ -94,7 +93,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     shader->activate();
 
     // Create meshes
-    Mesh pad = cube(padDimensions, glm::vec2(30, 40), true);
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
     Mesh sphere = generateSphere(1.0f, 5, 5);
     //Mesh tet = tetrahedrons(glm::vec3(2.0f));
@@ -102,7 +100,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     // Fill buffers
     unsigned int ballVAO = generateBuffer(sphere);
     unsigned int boxVAO  = generateBuffer(box);
-    unsigned int padVAO  = generateBuffer(pad);
 
     // Construct scene
     rootNode = new SceneNode();
@@ -170,9 +167,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->vertexArrayObjectID = boxVAO;
     boxNode->VAOIndexCount = box.indices.size();
     boxNode->nodeType = SceneNode::GEOMETRY_NORMAL_MAPPED;
-
-    padNode->vertexArrayObjectID = padVAO;
-    padNode->VAOIndexCount = pad.indices.size();
 
     ballNode->vertexArrayObjectID = ballVAO;
     ballNode->VAOIndexCount = sphere.indices.size();
@@ -253,7 +247,7 @@ void updateAmountBots(float &currentFps, double &time) {
                     assert(bots.at(i) == botsTeamA->children.at(i));
                     bots.erase(bots.begin()+i);
                     botsTeamA->children.erase(botsTeamA->children.begin()+i);
-                    delete(s);
+                    delete s;
                 } else {
                     if (tmpDeltaBots < 0) {
                         bots.at(i)->enabled = false;
@@ -343,12 +337,6 @@ void updateFrame(GLFWwindow* window) {
     ballNode->position = ballPosition;
     ballNode->scale = glm::vec3(ballRadius);
     ballNode->rotation = { 0, timeDelta*2, 0 };
-
-    padNode->position  = {
-        boxNode->position.x - (boxDimensions.x/2) + (padDimensions.x/2) + (1 - padPositionX) * (boxDimensions.x - padDimensions.x),
-        boxNode->position.y - (boxDimensions.y/2) + (padDimensions.y/2),
-        boxNode->position.z - (boxDimensions.z/2) + (padDimensions.z/2) + (1 - padPositionZ) * (boxDimensions.z - padDimensions.z)
-    };
 
     // update uniforms that doesnt change that often (once per draw)
     glUniform3fv(10, 1, glm::value_ptr(camera.getCameraPosition()));
