@@ -3,7 +3,7 @@
 
 in layout(location = 0) vec2 textureCoordinates;
 
-uniform layout(binding = 1) sampler2D sampler;
+uniform layout(binding = 0) sampler2D sampler;
 
 out vec4 color;
 

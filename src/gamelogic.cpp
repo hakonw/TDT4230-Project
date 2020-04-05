@@ -392,7 +392,6 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
                 glUniform3fv(location, 1, glm::value_ptr(pos3));
             }
             break;
-        case SceneNode::SPOT_LIGHT: break;
         case SceneNode::GROUP: break;
         case SceneNode::LINE: break;
     }
@@ -444,7 +443,6 @@ void renderNode(SceneNode* node) {
                 }
                 break;
             case SceneNode::POINT_LIGHT: break;
-            case SceneNode::SPOT_LIGHT: break;
             case SceneNode::GROUP: break;
             case SceneNode::LINE:
                 {
@@ -471,7 +469,7 @@ void renderNode(SceneNode* node) {
 void renderSkybox(){
     skyBoxShader->activate();
     glDepthMask(GL_FALSE);
-    glBindTextureUnit(1, skyBoxTextureID);
+    glBindTextureUnit(0, skyBoxTextureID);
 
     glm::mat4 cameraTransform = camera.getViewMatrixRotOnly();
     glm::mat4 VP = projection * cameraTransform;

@@ -12,7 +12,7 @@ private:
 
 public:
     enum SceneNodeType {
-        GEOMETRY, POINT_LIGHT, SPOT_LIGHT, GEOMETRY_NORMAL_MAPPED, GROUP, LINE
+        GEOMETRY, POINT_LIGHT, GEOMETRY_NORMAL_MAPPED, GROUP, LINE
     };
 
     SceneNode() {
@@ -125,15 +125,4 @@ inline glm::vec3 calcEulerAngles(const glm::vec3 &direction) {
     float pitch = std::asin(-dir.y);
     float yaw = std::atan2(dir.x, dir.z);
     return glm::vec3(pitch, yaw, 0.0f);
-}
-
-// May have HAD undefined behaviour
-template<typename T>
-inline void removeElement(std::vector<T *> &vec, T *&element) {
-    for (int i = vec.size() - 1; i >= 0; i--) {
-        if (vec.at(i) == element) {
-            vec.erase(vec.begin() + i);
-            break;
-        }
-    }
 }
