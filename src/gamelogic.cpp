@@ -33,9 +33,9 @@ double padPositionZ = 0;
 
 SceneNode* rootNode;
 SceneNode* boxNode;
-SceneNode* skyDomeNode;
-SceneNode* padNode;
-SceneNode* ballLightNode;
+SceneNode* sunNode;
+
+SceneNode* sunLightNode;
 SceneNode* staticLightNode;
 SceneNode* padLightNode;
 
@@ -55,7 +55,7 @@ void renderNode(SceneNode* node);
 
 #define NUM_POINT_LIGHTS 3
 
-double skyDomeRadius = 10.0f;
+double sunRadius = 15.0f;
 
 // These are heap allocated, because they should not be initialised at the start of the program
 Gloom::Shader* defaultShader;
@@ -66,7 +66,7 @@ unsigned int skyBoxTextureID;
 //const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
 const glm::vec3 boxDimensions(250.0f, 250.0f, 250.0f);
 
-glm::vec3 skyDomePosition(0, 0, 0);
+glm::vec3 sunPosition(0, 0, 0);
 
 CommandLineOptions options;
 
@@ -107,7 +107,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
     // Create meshes
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
-    Mesh sphere = generateSphere(1.0f, 5, 5);
+    Mesh sphere = generateSphere(1.0f, 10, 10);
 
     // Fill buffers
     unsigned int sphereVAO = generateBuffer(sphere);
@@ -116,12 +116,10 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     // Construct scene
     rootNode = new SceneNode();
     boxNode  = new SceneNode();
-    padNode  = new SceneNode();
-    skyDomeNode = new SceneNode();
+    sunNode = new SceneNode();
 
     rootNode->addChild(boxNode);
-    rootNode->addChild(padNode);
-    rootNode->addChild(skyDomeNode);
+    rootNode->addChild(sunNode);
 
     botsTeamA = new SceneNode(SceneNode::GROUP);
     rootNode->addChild(botsTeamA);
@@ -133,14 +131,13 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     }
 
     // Lights
-    ballLightNode = new SceneNode();
+    sunLightNode = new SceneNode();
     padLightNode = new SceneNode();
     staticLightNode = new SceneNode();
 
-    ballLightNode->nodeType = SceneNode::POINT_LIGHT;
-    ballLightNode->lightSourceID = 0;
-    ballLightNode->position = glm::vec3(0.0f, skyDomeRadius * 1.01f, 0.0f);
-    //ballLightNode->position = glm::vec3(-5.0f, 0.0f, -1.0f);
+    sunLightNode->nodeType = SceneNode::POINT_LIGHT;
+    sunLightNode->lightSourceID = 0;
+    sunLightNode->position = glm::vec3(0.0f, 0.0, 0.0f);
 
     padLightNode->nodeType = SceneNode::POINT_LIGHT;
     padLightNode->lightSourceID = 1;
@@ -151,18 +148,15 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     staticLightNode->position = glm::vec3(5.0f, 0.0f, -1.0f);
 
     // From task 1, where each light had to be at a different place
-    bots.at(0)->addChild(ballLightNode);
-    padNode->addChild(ballLightNode);
-    padNode->addChild(padLightNode);
-    padNode->addChild(staticLightNode);
+    //bots.at(0)->addChild(sunLightNode);
+    sunNode->addChild(sunLightNode);
 
-    //3b Select node colors
     glm::vec3 c;
     c = glm::vec3(0.2f, 0.0f, 0.0f);
     c = glm::vec3(0.7f, 0.7f, 0.7f);
-    placeLight3fvVal(ballLightNode->lightSourceID, "ambientColor", c);
-    placeLight3fvVal(ballLightNode->lightSourceID, "diffuseColor", c);
-    placeLight3fvVal(ballLightNode->lightSourceID, "specularColor", c);
+    placeLight3fvVal(sunLightNode->lightSourceID, "ambientColor", c);
+    placeLight3fvVal(sunLightNode->lightSourceID, "diffuseColor", c);
+    placeLight3fvVal(sunLightNode->lightSourceID, "specularColor", c);
 
     c = glm::vec3(0.0f, 0.0f, 0.2f);
     placeLight3fvVal(padLightNode->lightSourceID, "ambientColor", c);
@@ -180,8 +174,13 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->VAOIndexCount = box.indices.size();
     boxNode->nodeType = SceneNode::GEOMETRY_NORMAL_MAPPED;
 
-    skyDomeNode->vertexArrayObjectID = sphereVAO;
-    skyDomeNode->VAOIndexCount = sphere.indices.size();
+    sunNode->vertexArrayObjectID = sphereVAO;
+    sunNode->VAOIndexCount = sphere.indices.size();
+    sunNode->material.baseColor = glm::vec3(1.0f, 1.0f, 0.0f); // Yellow
+    sunNode->position = sunPosition;
+    sunNode->scale = glm::vec3(sunRadius);
+    sunNode->rotation = {0, 0, 0 };
+    sunNode->ignoreLight = 1;
 
 
     // Task 3 b
@@ -368,11 +367,8 @@ void updateFrame(GLFWwindow* window) {
     glm::mat4 VP = projection * cameraTransform;
 
     // Move and rotate various SceneNodes
-    boxNode->position = { 0, -10, -80 };
+    boxNode->position = { 0, -10, 0 };
 
-    skyDomeNode->position = skyDomePosition;
-    skyDomeNode->scale = glm::vec3(skyDomeRadius);
-    skyDomeNode->rotation = {0, 0, 0 };
 
     // update uniforms that doesnt change that often (once per draw)
     glUniform3fv(10, 1, glm::value_ptr(camera.getCameraPosition()));
@@ -401,7 +397,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
     node->currentNormalMatrix = glm::mat3(glm::transpose(glm::inverse(node->currentModelTransformationMatrix)));
 
     // push the ball node position to a uniform variable
-    if (node == skyDomeNode) {
+    if (node == sunNode) {
         glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
         glUniform3fv(11, 1, glm::value_ptr(pos));
     }
@@ -466,6 +462,7 @@ void renderNode(SceneNode* node) {
             glUniform1f(location, node->material.shininess);
         }
 
+        glUniform1i(12, node->ignoreLight); // Enable / disable lightning calculations
 
         switch(node->nodeType) {
             case SceneNode::GEOMETRY:

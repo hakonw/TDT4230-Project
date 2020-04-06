@@ -15,11 +15,11 @@ namespace Gloom
     class Camera
     {
     public:
-        Camera(glm::vec3 position         = glm::vec3(0.0f, 2.0f, -20),
+        Camera(glm::vec3 position         = glm::vec3(0.0f, 0.0f, 0.0f),
                GLfloat   movementSpeed    = 30.0f,
                GLfloat   mouseSensitivity = 0.001f,
                GLfloat   movementSpeedModifierNormal = 1.0f,
-               GLfloat   movementSpeedModifierActive = 2.0f)
+               GLfloat   movementSpeedModifierActive = 3.0f)
         {
             cPosition         = position;
             cMovementSpeed    = movementSpeed;

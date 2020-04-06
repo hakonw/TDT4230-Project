@@ -88,6 +88,8 @@ public:
     unsigned int normalMapTextureID;
     unsigned int roughnessMapID;
 
+    unsigned int ignoreLight = 0;
+
 
     void addChild(SceneNode *child) {
         this->children.push_back(child);

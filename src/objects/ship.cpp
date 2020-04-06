@@ -170,7 +170,8 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
 //glm::vec3 shipDirection = glm::vec3(1.0f, 0.0f, 0.0f);
 //   x=0  => boxNode.x = 0
 //  z box dim: 90/2 -80 = -35  -> -125,
-const glm::vec3 boxOffset(0, -10, -80);
+//const glm::vec3 boxOffset(0, -10, -80);
+const glm::vec3 boxOffset(0, 0, 0);
 const glm::vec3 boxDimensions(180, 90, 90);
 
 void Ship::barrierSafetyNet() {
