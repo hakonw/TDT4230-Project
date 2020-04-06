@@ -32,3 +32,6 @@
 [submodule "lib/fmt"]
 	path = lib/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "lib/ThreadPool"]
+	path = lib/ThreadPool
+	url = https://github.com/progschj/ThreadPool.git

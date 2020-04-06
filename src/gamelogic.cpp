@@ -17,6 +17,7 @@
 #include "objects/ShipManager.h"
 #include "utilities/camera.hpp"
 #include "objects/laser.h"
+#include <ThreadPool.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
@@ -68,6 +69,9 @@ const glm::vec3 boxDimensions(250.0f, 250.0f, 250.0f);
 glm::vec3 skyDomePosition(0, 0, 0);
 
 CommandLineOptions options;
+
+ThreadPool pool(std::max(std::thread::hardware_concurrency(), (unsigned int) 2));
+bool useMultiThread = false;
 
 bool isPaused = true;
 
@@ -250,10 +254,13 @@ void updateAmountBots(float &currentFps, double &time) {
 
         } else if (deltaBots < 0) { // Remove bots
             // Clean up old disabled bots, and then remove bots
+            unsigned int disabled = 0;
+            unsigned int deleted = 0;
             int tmpDeltaBots = deltaBots;
             for (unsigned int i=bots.size()-1; i>minBots; i--) {
                 // TODO fix possible O(n^2), but has a low call rate, low pri
                 if (!bots.at(i)->enabled) {
+                    deleted++;
                     Ship* s = bots.at(i);
                     assert(bots.at(i) == botsTeamA->children.at(i));
                     bots.erase(bots.begin()+i);
@@ -263,23 +270,31 @@ void updateAmountBots(float &currentFps, double &time) {
                     if (tmpDeltaBots < 0) {
                         bots.at(i)->enabled = false;
                         tmpDeltaBots++; // Work towards 0
+                        disabled++;
                     } else if (tmpDeltaBots == 0) {
                         break;
                     }
                 }
             }
-            printf("adaptive bot amount: Decreasing bots with %i to a total of %lu\n", deltaBots, bots.size());
+            printf("adaptive bot amount: Decreasing bots with %i (%i disabled, %i deleted) to a size of %lu active and a total %lu\n", deltaBots, disabled, deleted, bots.size()-disabled, bots.size());
         }
     }
 }
 
 int frameCount=0;
+int frameCount2=0;
 double sumTimeDelta=0;
+double sumTimeDelta2=0;
 void updateFrame(GLFWwindow* window) {
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     double timeDelta = getTimeDeltaSeconds();
+    sumTimeDelta2 += timeDelta;
+    if (frameCount2++ % 100 == 0) {
+        printf("TimeDelta average last 100 frames: %f\n", sumTimeDelta2/100);
+        sumTimeDelta2 = 0.0f;
+    }
 
     // FPS estimate
     // Also responsible for adaptive bots amount
@@ -320,8 +335,19 @@ void updateFrame(GLFWwindow* window) {
         }
 
         //bots.at(0).printShip();
+        std::vector<std::future<void>> futures;
+        auto updS = [](Ship* &ship, double &timeDelta, std::vector<Ship *> &bots) {return ship->updateShip(timeDelta, bots);};
         for (unsigned int i=0; i < bots.size(); i++) {
-            bots.at(i)->updateShip(timeDelta, bots);
+            if (useMultiThread) {
+                // enqueue and store future
+                futures.push_back(pool.enqueue(updS, bots.at(i), timeDelta, bots));
+            } else {
+                bots.at(i)->updateShip(timeDelta, bots);
+            }
+        }
+
+        for (auto &future : futures) {
+            future.get();
         }
 
         if (mouseLeftPressed && mouseLeftCanToggle) {
@@ -396,15 +422,29 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
         case SceneNode::LINE: break;
     }
 
+    std::vector<std::future<void>> futures;
     for(SceneNode* child : node->children) {
         assert(child != node);
-        updateNodeTransformations(child, VP, node->currentModelTransformationMatrix);
+        if (useMultiThread) {
+            futures.push_back(pool.enqueue(updateNodeTransformations, child, VP, node->currentModelTransformationMatrix));
+        } else {
+            updateNodeTransformations(child, VP, node->currentModelTransformationMatrix);
+        }
     }
 
     if (node->getIndependentChildrenSize() > 0) {
         for (SceneNode* child : node->getIndependentChildren()) {
-            updateNodeTransformations(child, VP, transformationThusFar);
+            if (useMultiThread) {
+                futures.push_back(pool.enqueue(updateNodeTransformations, child, VP, transformationThusFar));
+            } else {
+                updateNodeTransformations(child, VP, transformationThusFar);
+            }
         }
+    }
+
+    // Wait for all threads to finish
+    for (std::future<void> &a : futures) {
+        a.get();
     }
 }
 
