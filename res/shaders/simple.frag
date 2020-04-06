@@ -41,6 +41,13 @@ struct PointLight {
     vec3 specularColor;
 };
 
+struct Material {
+    vec3 baseColor;
+    float shininess;
+};
+
+uniform Material material;
+
 #define NUM_POINT_LIGHTS 1
 uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
@@ -81,7 +88,6 @@ vec3 reject(vec3 from, vec3 onto) {
 void main()
 {
 
-    // TODO hvorfor må man også normalize den på starten av fragment shader?
     vec3 normal = normalUniform;
 
     if (useNormalMap == 1) {
@@ -91,6 +97,7 @@ void main()
         normal = n;
     }
 
+    // TODO hvorfor må man også normalize den på starten av fragment shader?
     vec3 norm = normalize(normal);
     vec3 viewDir = normalize(cameraPos - fragPos);
 
@@ -116,11 +123,12 @@ void main()
         rejectionLeftover = max(rejectionLeftover, 1.0f);
         if (length(lightVec) < length(fragBallVec)) lightRatio = 1.0f; // special case 1
         if (dot(lightVec, fragBallVec) < 0) lightRatio = 1.0f; // special case 2
-        lightRatio = 1.0f;
+        lightRatio = 1.0f; // TODO force disable of shadow (atm)
 
         result += calcPointLight(pointLights[i], norm, fragPos, viewDir, lightDir, lightRatio);
     }
-
+    
+    result = result * material.baseColor; // light level & basecolor
     color = vec4(result, 1.0f);
 
     if (useTexture == 1) {

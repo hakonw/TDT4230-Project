@@ -457,6 +457,16 @@ void renderNode(SceneNode* node) {
         // pass normal matrix to the vertex shader
         glUniformMatrix3fv(5, 1, GL_FALSE, glm::value_ptr(node->currentNormalMatrix));
 
+        // Set object material
+        if (node->vertexArrayObjectID != -1) {
+            // TODO use uniform buffer instead?
+            GLint location = defaultShader->getUniformFromName("material.baseColor");
+            glUniform3fv(location, 1, glm::value_ptr(node->material.baseColor));
+            location = defaultShader->getUniformFromName("material.shininess");
+            glUniform1f(location, node->material.shininess);
+        }
+
+
         switch(node->nodeType) {
             case SceneNode::GEOMETRY:
                 if(node->vertexArrayObjectID != -1) {

@@ -2,9 +2,13 @@
 
 #include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
-
 #include <vector>
 #include <cstdio>
+
+struct Material {
+    glm::vec3 baseColor = glm::vec3{1.0f, 1.0f, 1.0f};
+    float shininess = 32;
+};
 
 
 class SceneNode {
@@ -53,6 +57,8 @@ public:
     glm::vec3 position;
     glm::vec3 rotation;
     glm::vec3 scale;
+
+    Material material;
 
     // A transformation matrix representing the transformation of the node's location relative to its parent. This matrix is updated every frame.
     glm::mat4 currentTransformationMatrix;

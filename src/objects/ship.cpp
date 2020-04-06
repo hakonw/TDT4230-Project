@@ -29,6 +29,8 @@ void Ship::generateShipNode() {
 
     this->position = glm::vec3(-4.0f, -49.0f, -100.0f);
     this->velocity = glm::ballRand(this->maxVelocity);
+
+    this->material.baseColor = glm::vec3(0.0f, 0.0f, 1.0f);
 }
 
 void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
