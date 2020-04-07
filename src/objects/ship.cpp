@@ -1,6 +1,6 @@
 #include "ship.h"
-#include <utilities/shapes.h>
-#include <utilities/glutils.h>
+#include "utilities/shapes.h"
+#include "utilities/glutils.h"
 #include "sceneGraph.hpp"
 #include <glm/gtc/random.hpp>
 #include <glm/vec3.hpp>
@@ -31,6 +31,9 @@ void Ship::generateShipNode() {
     this->velocity = glm::ballRand(this->maxVelocity);
 
     this->material.baseColor = glm::vec3(0.0f, 0.0f, 1.0f);
+
+    this->hasBoundingBox = true;
+    this->boundingBoxDimension = tetrahedronDim;
 }
 
 void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
@@ -51,6 +54,15 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     this->acceleration += separationForce * this->weightSeparation;
     this->acceleration +=  alignmentForce * this->weightAlignment;
     this->acceleration +=   cohesionForce * this->weightCohesion;
+
+    Ray r = genRay(this->position, this->velocity);
+    for (SceneNode* &n : collisionObjects) {
+        if (rayBoxIntersect(r, n->getBoundingBox())){
+            printf("Yanky %i\n", this->id);
+            this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
+            this->lasers.push_back(new Laser(this->position, n->position-this->position));
+        }
+    }
 
 
     // Check if collision with box, and move back inside, as not to just go away infinitely

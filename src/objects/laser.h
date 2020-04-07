@@ -38,6 +38,9 @@ public:
         this->direction = glm::normalize(dir);
         this->rotation = calcEulerAngles(this->direction);
         this->scale = glm::vec3(this->length);
+
+        this->material.baseColor = glm::vec3(1.0f, 0.0f, 0.0f);
+        this->ignoreLight = true;
     }
 
     void update(double deltaTime) {

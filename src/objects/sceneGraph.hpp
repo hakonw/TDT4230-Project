@@ -4,6 +4,7 @@
 #include <glm/mat4x4.hpp>
 #include <vector>
 #include <cstdio>
+#include "utilities/RayBoxIntersect.h"
 
 struct Material {
     glm::vec3 baseColor = glm::vec3{1.0f, 1.0f, 1.0f};
@@ -52,6 +53,12 @@ public:
     virtual std::vector<SceneNode *> getIndependentChildren() {
         return std::vector<SceneNode *>();
     }
+
+    // Bounding box fields
+    bool hasBoundingBox = false;
+    glm::vec3 boundingBoxDimension;
+    BoundingBox getBoundingBox() { return genBoundingBox(this->position, this->boundingBoxDimension, this->scale); }
+    std::vector<SceneNode *> collisionObjects;
 
     // The node's position and rotation relative to its parent
     glm::vec3 position;

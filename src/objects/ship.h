@@ -33,8 +33,6 @@ private:
     std::vector<Laser*> lasers;
 
 public:
-    static SceneNode* laserGroup;
-
     glm::vec3 acceleration = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 velocity = glm::vec3(1.0f, 1.0f, 1.0f);
 
@@ -42,9 +40,7 @@ public:
     void updateShip(double deltaTime, std::vector<Ship*> &ships);
     void generateLaser();
 
-    unsigned int getIndependentChildrenSize() override {
-        return lasers.size();
-    }
+    unsigned int getIndependentChildrenSize() override { return lasers.size(); }
     // TODO research if there is a "cheaper" way
     // Alternatively, have a list of casted pointers, manage both lists OR castback
     std::vector<SceneNode*> getIndependentChildren() override {

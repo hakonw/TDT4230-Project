@@ -128,6 +128,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
         Ship* ship = new Ship();
         bots.push_back(ship);
         botsTeamA->addChild(ship); // Add it to be rendered
+        ship->collisionObjects.push_back(sunNode);
     }
 
     // Lights
@@ -176,11 +177,13 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
     sunNode->vertexArrayObjectID = sphereVAO;
     sunNode->VAOIndexCount = sphere.indices.size();
-    sunNode->material.baseColor = glm::vec3(1.0f, 1.0f, 0.0f); // Yellow
+    sunNode->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f); // Yellow
     sunNode->position = sunPosition;
     sunNode->scale = glm::vec3(sunRadius);
     sunNode->rotation = {0, 0, 0 };
     sunNode->ignoreLight = 1;
+    sunNode->boundingBoxDimension = glm::vec3(1.0f);
+    sunNode->hasBoundingBox = true;
 
 
     // Task 3 b
@@ -396,7 +399,8 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
     // https://stackoverflow.com/questions/10879864/what-extractly-mat3a-mat4-matrix-statement-in-glsl-do
     node->currentNormalMatrix = glm::mat3(glm::transpose(glm::inverse(node->currentModelTransformationMatrix)));
 
-    // push the ball node position to a uniform variable
+    // push the sun node position to a uniform variable
+    // TODO remove if un-needed
     if (node == sunNode) {
         glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
         glUniform3fv(11, 1, glm::value_ptr(pos));
