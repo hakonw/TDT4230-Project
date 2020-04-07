@@ -14,9 +14,15 @@ struct Ray{
     glm::vec3 rayFrac;
 };
 
+struct RayIntersection{
+    bool intersect;
+    float t;
+    float distance;
+};
+
 Ray genRay(glm::vec3 pos, glm::vec3 dir);
 BoundingBox genBoundingBox(glm::vec3 position, glm::vec3 dimension, glm::vec3 scale);
-bool rayBoxIntersect(Ray ray, BoundingBox boundingBox);
+RayIntersection rayBoxIntersect(Ray ray, BoundingBox boundingBox);
 
 // https://distantsoulsdev.blogspot.com/2013/03/adventures-in-branchless-min-max-with.html
 // https://stackoverflow.com/questions/40196817/what-is-the-instruction-that-gives-branchless-fp-min-and-max-on-x86

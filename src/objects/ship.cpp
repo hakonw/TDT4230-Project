@@ -57,8 +57,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
 
     Ray r = genRay(this->position, this->velocity);
     for (SceneNode* &n : collisionObjects) {
-        if (rayBoxIntersect(r, n->getBoundingBox())){
-            printf("Yanky %i\n", this->id);
+        if (rayBoxIntersect(r, n->getBoundingBox()).intersect){
             this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
             this->lasers.push_back(new Laser(this->position, n->position-this->position));
         }

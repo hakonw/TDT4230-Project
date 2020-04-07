@@ -1,4 +1,6 @@
 #include "RayBoxIntersect.h"
+#include <glm/vec3.hpp>
+#include <glm/geometric.hpp>
 
 
 Ray genRay(glm::vec3 pos, glm::vec3 dir) {
@@ -9,6 +11,7 @@ Ray genRay(glm::vec3 pos, glm::vec3 dir) {
     };
 }
 
+// Can return v1, v2 for AABB, but then it is not strictly correct
 BoundingBox genBoundingBox(glm::vec3 position, glm::vec3 dimension, glm::vec3 scale) {
     glm::vec3 v1 = position - (dimension*scale/2.0f);
     glm::vec3 v2 = position + (dimension*scale/2.0f);
@@ -29,7 +32,7 @@ BoundingBox genBoundingBox(glm::vec3 position, glm::vec3 dimension, glm::vec3 sc
     };
 }
 
-bool rayBoxIntersect(Ray ray, BoundingBox boundingBox) {
+RayIntersection rayBoxIntersect(Ray ray, BoundingBox boundingBox) {
     float tx1 = (boundingBox.min.x - ray.rayPos.x) * ray.rayFrac.x;
     float tx2 = (boundingBox.max.x - ray.rayPos.x) * ray.rayFrac.x;
 
@@ -52,9 +55,27 @@ bool rayBoxIntersect(Ray ray, BoundingBox boundingBox) {
     // tmin > tmax means ray does not intersect AABB (t = tmax = inf?)
     // tmin < 0    means ray origin is inside of AABB, and first intersect is at tmax (t = tmax)
     // tmin is the distance (in vectors) to the intersect (t = tmin)
-    if (tmax < 0) {
-        return false;
+    RayIntersection intersection{};
+
+    // So much for being branchless
+    if (tmax < 0) { // Intersection on wrong side
+        intersection.intersect = false;
+        intersection.t = tmax;
     }
 
-    return tmax >= tmin;
+    if (tmin > tmax) { // No intersection
+        intersection.intersect = false;
+        intersection.t = tmax;
+    }
+
+    if (tmax >= tmin && tmax >= 0) { // Intersect
+        intersection.intersect = true;
+        if (tmin < 0) { // inside
+            intersection.t = tmax;
+        } else {
+            intersection.t = tmin;
+        }
+        intersection.distance = glm::length(intersection.t * ray.rayDir);
+    }
+    return intersection;
 }
