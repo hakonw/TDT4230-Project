@@ -21,7 +21,7 @@ private:
 
     float weightSeparation = 1.4f;
     float weightAlignment = 1.0f;
-    float weightCohesion = 1.0f;
+    float weightCohesion = 0.7f;
 
     std::vector<Ship*> getShipsInRadius(std::vector<Ship*> &ships);
     glm::vec3 getSeparationForce(const std::vector<Ship*> &closeShips);
@@ -31,6 +31,10 @@ private:
     void barrierSafetyNet();
 
     std::vector<Laser*> lasers;
+
+    const float minLaserRefraction = 0.4f; // How often (min) can the ship shoot in seconds
+    const float laserViewDistance = 100.0f;
+    float laserRefraction = minLaserRefraction; //(float) (random() % (int)minLaserRefraction);
 
 public:
     glm::vec3 acceleration = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -46,6 +50,8 @@ public:
     std::vector<SceneNode*> getIndependentChildren() override {
         return std::vector<SceneNode*>(lasers.begin(), lasers.end());
     }
+
+    std::vector<SceneNode* > attractors;
 
     void printShip();
 

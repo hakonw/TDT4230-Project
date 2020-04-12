@@ -34,7 +34,8 @@ void Ship::generateShipNode() {
     this->material.baseColor = glm::vec3(0.0f, 0.0f, 1.0f);
 
     this->hasBoundingBox = true;
-    this->boundingBoxDimension = tetrahedronDim;
+    //this->boundingBoxDimension = tetrahedronDim;
+    this->boundingBoxDimension = glm::vec3(2,3,4)*2.0f;
 }
 
 void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
@@ -58,12 +59,27 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         this->acceleration += cohesionForce * this->weightCohesion;
 
         Ray r = genRay(this->position, this->velocity);
-        for (SceneNode *&n : collisionObjects) {
+        for (SceneNode *n : collisionObjects) {
             if (rayBoxIntersect(r, n->getBoundingBox()).intersect) {
                 this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
                 this->lasers.push_back(new Laser(this->position, n->position - this->position));
             }
         }
+
+        this->laserRefraction -= (float) deltaTime;
+        if (laserRefraction <= 0) {
+            r = genRay(this->position, this->velocity);
+            for (SceneNode *n : ships) {
+                RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
+                if (intersection.intersect && intersection.distance < Ship::laserViewDistance) {
+                    this->lasers.push_back(new Laser(this->position, n->position - this->position));
+                    this->laserRefraction = Ship::minLaserRefraction;
+                    break;
+                }
+            }
+        }
+
+
 
 
         // Check if collision with box, and move back inside, as not to just go away infinitely
@@ -184,8 +200,8 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
 //   x=0  => boxNode.x = 0
 //  z box dim: 90/2 -80 = -35  -> -125,
 //const glm::vec3 boxOffset(0, -10, -80);
-const glm::vec3 boxOffset(0, 0, 0);
-const glm::vec3 boxDimensions(90, 90, 90);
+const glm::vec3 boxOffset = glm::vec3(0, 0, 0);
+const glm::vec3 boxDimensions = glm::vec3(90, 90, 90)*2.0f;
 
 void Ship::barrierSafetyNet() {
     float x = this->position.x;
