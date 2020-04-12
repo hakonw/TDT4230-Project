@@ -132,7 +132,19 @@ public:
         return count;
     }
 
-    virtual ~SceneNode() = default;
+    // AS long as the node isnt used (as with multi threading), deleting is safe
+    // Cleaning should be done in a single thread or no children for safety
+    virtual ~SceneNode() {
+        for (SceneNode* node : this->getIndependentChildren() ) {
+                delete node;
+                node = nullptr;
+        }
+
+        for (SceneNode* node : children) {
+                delete node;
+                node = nullptr;
+        }
+    };
 };
 
 inline glm::vec3 calcEulerAngles(const glm::vec3 &direction) {

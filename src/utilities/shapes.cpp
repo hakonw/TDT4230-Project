@@ -32,9 +32,9 @@
 Mesh generateTetrahedron(const glm::vec3 scale) {
     Mesh m;
 
-    const float length = 1.0f; // DO NOT CHANGE
-    const float height = std::sqrt(6.0f) / 3 * length;
-    const float width = std::sqrt(1.25f); // sqrt(0.5^2 + 1^2) -- pythagoras
+    const float length = 1.0f; // DO NOT CHANGE unless you want to look over the maths
+    const float height = (std::sqrt(6.0f) / 3) * length;
+    const float width = std::sqrt((length*length) - ((length/2) * (length/2))); // sqrt(1^2 - 0.5^2) -- pythagoras
 
     // Populate points
     m.vertices.resize(4);
@@ -62,12 +62,12 @@ Mesh generateTetrahedron(const glm::vec3 scale) {
     indices[1*3 + 1] = 2;
     indices[1*3 + 2] = 3;
 
-    // Towards side
+    // right side
     indices[2*3 + 0] = 1;
     indices[2*3 + 1] = 3;
     indices[2*3 + 2] = 2;
 
-    // right side
+    // back side
     indices[3*3 + 0] = 0;
     indices[3*3 + 1] = 3;
     indices[3*3 + 2] = 1;
@@ -79,9 +79,13 @@ Mesh generateTetrahedron(const glm::vec3 scale) {
         glm::vec3 a = m.vertices.at(indices[i*3 + 0]);
         glm::vec3 b = m.vertices.at(indices[i*3 + 1]);
         glm::vec3 c = m.vertices.at(indices[i*3 + 2]);
+        //printf("ita %i, (%f, %f, %f)\n", i, a.x, a.y, a.z);
+        //printf("itb %i, (%f, %f, %f)\n", i, b.x, b.y, b.z);
+        //printf("itc %i, (%f, %f, %f)\n", i, c.x, c.y, c.z);
 
         glm::vec3 n = glm::normalize(glm::cross(b-a, c-a));
         m.normals.push_back(n);
+        //printf("%i, (%f, %f, %f)\n", i, n.x, n.y, n.z);
     }
 
     return m;
@@ -95,7 +99,7 @@ Mesh generateUnitLine(){
     m.vertices.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
     m.vertices.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
 
-    m.normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
+    m.normals.push_back(glm::vec3(1.0f, 0.0f, 0.0f)); // Not a real normal, but is a safety vs 0,0,0
 
     return m;
 }

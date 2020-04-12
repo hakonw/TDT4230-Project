@@ -41,7 +41,7 @@ SceneNode* padLightNode;
 
 glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
 
-#define DEFAULT_ALLOWED_BOTS 100
+#define DEFAULT_ALLOWED_BOTS 300
 std::vector <Ship*> bots;
 //std::vector <Ship> &Ship::ships = bots;
 
@@ -130,6 +130,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
         botsTeamA->addChild(ship); // Add it to be rendered
         ship->collisionObjects.push_back(sunNode);
     }
+    bots.at(0)->generateLaser(); // Lazy for for race condition (Note implement better cache structre) or pre-init
 
     // Lights
     sunLightNode = new SceneNode();
@@ -294,7 +295,7 @@ void updateFrame(GLFWwindow* window) {
     double timeDelta = getTimeDeltaSeconds();
     sumTimeDelta2 += timeDelta;
     if (frameCount2++ % 100 == 0) {
-        printf("TimeDelta average last 100 frames: %f\n", sumTimeDelta2/100);
+        //printf("TimeDelta average last 100 frames: %f\n", sumTimeDelta2/100);
         sumTimeDelta2 = 0.0f;
     }
 
@@ -434,7 +435,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
 
     if (node->getIndependentChildrenSize() > 0) {
         for (SceneNode* child : node->getIndependentChildren()) {
-            if (useMultiThread) {
+            if (useMultiThread && false) { //temporarly disabled as it creates a weird race condition
                 futures.push_back(pool.enqueue(updateNodeTransformations, child, VP, transformationThusFar));
             } else {
                 updateNodeTransformations(child, VP, transformationThusFar);

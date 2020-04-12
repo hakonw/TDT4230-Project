@@ -15,14 +15,15 @@ bool Ship::textureCached = false;
 
 void Ship::generateShipNode() {
     if (!textureCached) {
-        //const glm::vec3 dboxDimensions(4, 3, 2);
-        //Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
-        Mesh m = generateTetrahedron(glm::vec3(4.0f, 4.0f, 8.0f));
+        const glm::vec3 dboxDimensions(2, 3, 4);
+        Mesh m = cube(dboxDimensions, glm::vec2(dboxDimensions.x, dboxDimensions.z), true);
+        //Mesh m = generateTetrahedron(glm::vec3(1.0f));
         unsigned int mVAO = generateBuffer(m);
         Ship::textureVaoId = mVAO;
         Ship::textureIndicesCount = m.indices.size();
         Ship::textureCached = true;
     }
+    //this->scale = glm::vec3(1.0f, 1.0f, 2.0f)*4.0f;
     this->vertexArrayObjectID = (int) Ship::textureVaoId;
     this->VAOIndexCount = Ship::textureIndicesCount;
     this->nodeType = SceneNode::GEOMETRY;
@@ -37,51 +38,53 @@ void Ship::generateShipNode() {
 }
 
 void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
-    this->acceleration = glm::vec3(0.0f);
+    if (this->enabled) {
+        this->acceleration = glm::vec3(0.0f);
 
-    // Get all ships in proximity
-    const std::vector<Ship*> closeShips = this->getShipsInRadius(ships);
+        // Get all ships in proximity
+        const std::vector<Ship *> closeShips = this->getShipsInRadius(ships);
 
-    // Rule 1: Separation
-    glm::vec3 separationForce = getSeparationForce(closeShips);
+        // Rule 1: Separation
+        glm::vec3 separationForce = getSeparationForce(closeShips);
 
-    // Rule 2: Alignment
-    glm::vec3 alignmentForce = getAlignmentForce(closeShips);
+        // Rule 2: Alignment
+        glm::vec3 alignmentForce = getAlignmentForce(closeShips);
 
-    // Rule 3: Cohesion
-    glm::vec3 cohesionForce = getCohesionForce(closeShips);
+        // Rule 3: Cohesion
+        glm::vec3 cohesionForce = getCohesionForce(closeShips);
 
-    this->acceleration += separationForce * this->weightSeparation;
-    this->acceleration +=  alignmentForce * this->weightAlignment;
-    this->acceleration +=   cohesionForce * this->weightCohesion;
+        this->acceleration += separationForce * this->weightSeparation;
+        this->acceleration += alignmentForce * this->weightAlignment;
+        this->acceleration += cohesionForce * this->weightCohesion;
 
-    Ray r = genRay(this->position, this->velocity);
-    for (SceneNode* &n : collisionObjects) {
-        if (rayBoxIntersect(r, n->getBoundingBox()).intersect){
-            this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
-            this->lasers.push_back(new Laser(this->position, n->position-this->position));
+        Ray r = genRay(this->position, this->velocity);
+        for (SceneNode *&n : collisionObjects) {
+            if (rayBoxIntersect(r, n->getBoundingBox()).intersect) {
+                this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
+                this->lasers.push_back(new Laser(this->position, n->position - this->position));
+            }
         }
+
+
+        // Check if collision with box, and move back inside, as not to just go away infinitely
+        // Overwrites all other behaviors
+        this->barrierSafetyNet();
+
+        // Calculate new velocity
+        this->velocity = this->velocity + this->acceleration * (float) deltaTime; // v = v0 + at
+        // Cap velocity over and under
+        float speed = glm::length(this->velocity);
+        glm::vec3 direction = this->velocity / speed; // Aka normalize
+        speed = glm::clamp(speed, this->minVelocity, this->maxVelocity);
+        this->velocity = speed * direction;
+
+        // Update the ships possition
+        this->position += (float) deltaTime * this->velocity; // x = x0 + v*t
+
+        // Set rotation
+        // TODO find a way to calculate roll
+        this->rotation = calcEulerAngles(direction);
     }
-
-
-    // Check if collision with box, and move back inside, as not to just go away infinitely
-    // Overwrites all other behaviors
-    this->barrierSafetyNet();
-
-    // Calculate new velocity
-    this->velocity = this->velocity + this->acceleration * (float) deltaTime; // v = v0 + at
-    // Cap velocity over and under
-    float speed = glm::length(this->velocity);
-    glm::vec3 direction = this->velocity / speed; // Aka normalize
-    speed = glm::clamp(speed, this->minVelocity, this->maxVelocity);
-    this->velocity = speed * direction;
-
-    // Update the ships possition
-    this->position += (float) deltaTime * this->velocity; // x = x0 + v*t
-
-    // Set rotation
-    // TODO find a way to calculate roll
-    this->rotation = calcEulerAngles(direction);
 
     // Update lasers
     for (int i = (int)lasers.size() - 1; i >= 0; i--) {
@@ -94,7 +97,6 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
             delete l;
         }
     }
-
     //printShip();
 }
 
@@ -167,7 +169,7 @@ glm::vec3 Ship::getForceFromVec(const glm::vec3 &vec, bool vecDiff) {
 std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
     std::vector<Ship*> returnList;
     for (Ship* ship2 : ships) {
-        if (this != ship2) {
+        if (this != ship2 && ship2->enabled) {
             if (glm::length(this->position - ship2->position) <= this->perceptionRadius) {
                 returnList.push_back(ship2);
             }
@@ -183,7 +185,7 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
 //  z box dim: 90/2 -80 = -35  -> -125,
 //const glm::vec3 boxOffset(0, -10, -80);
 const glm::vec3 boxOffset(0, 0, 0);
-const glm::vec3 boxDimensions(180, 90, 90);
+const glm::vec3 boxDimensions(90, 90, 90);
 
 void Ship::barrierSafetyNet() {
     float x = this->position.x;

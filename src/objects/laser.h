@@ -58,7 +58,6 @@ public:
     Laser(glm::vec3 pos, glm::vec3 dir) : SceneNode() {
         generateNode(pos, dir);
     }
-
 };
 
 #endif //GLOWBOX_LASER_H

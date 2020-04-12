@@ -99,7 +99,6 @@ void main()
         normal = n;
     }
 
-    // TODO hvorfor må man også normalize den på starten av fragment shader?
     vec3 norm = normalize(normal);
     vec3 viewDir = normalize(cameraPos - fragPos);
 
