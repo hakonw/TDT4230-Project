@@ -20,15 +20,13 @@
 #include <ThreadPool.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
+#include <utilities/buttonHandler.h>
 
 enum KeyFrameAction {
     BOTTOM, TOP
 };
 
 Gloom::Camera camera;
-
-double padPositionX = 0;
-double padPositionZ = 0;
 
 SceneNode* rootNode;
 SceneNode* boxNode;
@@ -46,8 +44,6 @@ std::vector <Ship*> bots;
 
 SceneNode* botsTeamA;
 
-
-unsigned int getTextureID(PNGImage* img);
 void renderNode(SceneNode* node);
 
 #define NUM_POINT_LIGHTS 3
@@ -73,12 +69,6 @@ bool useMultiThread = false;
 bool captureMouse = true; // A must for debugging as opengl steals the mouse
 
 bool isPaused = true;
-
-bool mouseLeftPressed   = false;
-bool mouseLeftCanToggle = true;
-bool mouseLeftReleased  = false;
-bool mouseRightPressed  = false;
-bool mouseRightReleased = false;
 
 void mouseCallback(GLFWwindow* window, double x, double y) {
     camera.handleCursorPosInput(x, y);
@@ -144,7 +134,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     }
     bots.at(0)->generateLaser(); // Lazy for for race condition (Note implement better cache structre) or pre-init
 
-
     // Lights
     sunLightNode = new SceneNode();
     padLightNode = new SceneNode();
@@ -187,18 +176,18 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     rootNode->addChild(boxNode);
     boxNode->vertexArrayObjectID = boxVAO;
     boxNode->VAOIndexCount = box.indices.size();
-    boxNode->nodeType = SceneNode::GEOMETRY_NORMAL_MAPPED;
+    boxNode->nodeType = SceneNode::GEOMETRY;
 
     PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
-    PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
-    PNGImage brickRoughMap = loadPNGFile("../res/textures/Brick03_rgh.png");
+    //PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
+    //PNGImage brickRoughMap = loadPNGFile("../res/textures/Brick03_rgh.png");
     unsigned int brickTextureID = getTextureID(&brickTextureMap);
-    unsigned int brickNormalTextureID = getTextureID(&brickNormalMap);
-    unsigned int brickRoughMapID = getTextureID(&brickRoughMap);
+    //unsigned int brickNormalTextureID = getTextureID(&brickNormalMap);
+    //unsigned int brickRoughMapID = getTextureID(&brickRoughMap);
 
-    boxNode->normalMapTextureID = brickNormalTextureID;
     boxNode->textureID = brickTextureID;
-    boxNode->roughnessMapID = brickRoughMapID;
+    //boxNode->normalMapTextureID = brickNormalTextureID;
+    //boxNode->roughnessMapID = brickRoughMapID;
 
     //GLfloat lineWidthRange[2];
     //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
@@ -215,23 +204,12 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     //glDisable(GL_CULL_FACE);
 }
 
-unsigned int getTextureID(PNGImage* img) {
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels.data());
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    return textureID;
-}
-
 int frameCount=0;
 int frameCount2=0;
 double sumTimeDelta=0;
 double sumTimeDelta2=0;
+std::vector<int> mouseKeys = {GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_2};
+std::vector<int> keys = {};
 void updateFrame(GLFWwindow* window) {
 
     if (captureMouse) {
@@ -257,32 +235,18 @@ void updateFrame(GLFWwindow* window) {
         sumTimeDelta = 0;
     }
 
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1)) {
-        mouseLeftPressed = true;
-        mouseLeftReleased = false;
-    } else {
-        mouseLeftReleased = mouseLeftPressed;
-        mouseLeftPressed = false;
-        mouseLeftCanToggle = true;
+    for (int key : keys) {
+        handleKeyboardInputs(key, glfwGetKey(window, key));
     }
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_2)) {
-        mouseRightPressed = true;
-        mouseRightReleased = false;
-    } else {
-        mouseRightReleased = mouseRightPressed;
-        mouseRightPressed = false;
+    for (int key : mouseKeys) {
+        handleKeyboardInputs(key, glfwGetMouseButton(window, key));
     }
 
     // Game logic, pausing
-    if (isPaused) {
-        if (mouseRightReleased) {
-            isPaused = false;
-        }
-    } else {
-        if (mouseRightReleased) {
-            isPaused = true;
-        }
-
+    if (getAndSetKeySinglePress(GLFW_MOUSE_BUTTON_2)) {
+        isPaused = not isPaused;
+    }
+    if (!isPaused) {
         //bots.at(0).printShip();
         std::vector<std::future<void>> futures;
         auto updS = [](Ship* &ship, double &timeDelta, std::vector<Ship *> &bots) {return ship->updateShip(timeDelta, bots);};
@@ -299,9 +263,7 @@ void updateFrame(GLFWwindow* window) {
             future.get();
         }
 
-        if (mouseLeftPressed && mouseLeftCanToggle) {
-            mouseLeftCanToggle = false;
-            mouseLeftPressed = false;
+        if (getAndSetKeySinglePress(GLFW_MOUSE_BUTTON_1)) {
             for (Ship* s : bots) {
                 s->generateLaser();
             }

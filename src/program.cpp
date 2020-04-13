@@ -2,8 +2,6 @@
 #include "program.hpp"
 #include "utilities/window.hpp"
 #include "gamelogic.h"
-#include <glm/glm.hpp>
-// glm::translate, glm::rotate, glm::scale, glm::perspective
 #include <utilities/glutils.h>
 
 #define DEBUG 0

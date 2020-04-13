@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 #include <program.hpp>
 #include "glutils.h"
+#include "imageLoader.hpp"
 #include <vector>
 
 template <class T>
@@ -12,6 +13,19 @@ GLuint generateAttribute(int id, int elementsPerEntry, std::vector<T> data, bool
     glVertexAttribPointer(id, elementsPerEntry, GL_FLOAT, normalize ? GL_TRUE : GL_FALSE, sizeof(T), 0);
     glEnableVertexAttribArray(id);
     return bufferID;
+}
+
+unsigned int getTextureID(PNGImage* img) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels.data());
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    return textureID;
 }
 
 // http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
