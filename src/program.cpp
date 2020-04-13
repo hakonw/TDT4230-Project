@@ -4,15 +4,7 @@
 #include "gamelogic.h"
 #include <glm/glm.hpp>
 // glm::translate, glm::rotate, glm::scale, glm::perspective
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
-#include <SFML/Audio.hpp>
-#include <SFML/System/Time.hpp>
-#include <utilities/shapes.h>
 #include <utilities/glutils.h>
-#include <utilities/shader.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <utilities/timeutils.h>
 
 #define DEBUG 0
 #define printDebug(string) if (DEBUG) { fprintf(stderr, string); printGLError(); }

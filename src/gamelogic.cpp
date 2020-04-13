@@ -14,11 +14,10 @@
 #include "objects/sceneGraph.hpp"
 #include "utilities/imageLoader.hpp"
 #include "objects/ship.h"
-#include "objects/ShipManager.h"
+#include "objects/shipManager.h"
 #include "utilities/camera.hpp"
 #include "objects/laser.h"
 #include <ThreadPool.h>
-
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 
@@ -48,8 +47,6 @@ std::vector <Ship*> bots;
 SceneNode* botsTeamA;
 
 
-// I am mostly lazy
-void updateAmountBots(float &currentFps, double &time);
 unsigned int getTextureID(PNGImage* img);
 void renderNode(SceneNode* node);
 
@@ -231,60 +228,6 @@ unsigned int getTextureID(PNGImage* img) {
     return textureID;
 }
 
-
-// Adaptive update bots based on fps
-void updateAmountBots(float &currentFps, double &time) {
-    // Only update bots if inside limits
-    if (bots.size() > minBots && bots.size() < maxBots) {
-        int deltaBots = calculateAmountAdaptiveUpdateAmountBots(currentFps, time);
-        if (bots.size() + deltaBots < minBots) deltaBots = bots.size() - minBots;
-
-        if (deltaBots > 0) { // Add bots
-            // Activate old disabled bots
-            for (Ship *s : bots) {
-                if (deltaBots == 0) break;
-                if (!s->enabled) {
-                    s->enabled = true;
-                    deltaBots--;
-                }
-            }
-            // Add new bots if needed
-            for (int i=0; i<deltaBots; i++) {
-                Ship *ship = new Ship();
-                bots.push_back(ship);
-                botsTeamA->addChild(ship); // Add it to be rendered
-            }
-            printf("adaptive bot amount: Increasing bots with %i to a total of %lu\n", deltaBots, bots.size());
-
-        } else if (deltaBots < 0) { // Remove bots
-            // Clean up old disabled bots, and then remove bots
-            unsigned int disabled = 0;
-            unsigned int deleted = 0;
-            int tmpDeltaBots = deltaBots;
-            for (unsigned int i=bots.size()-1; i>minBots; i--) {
-                // TODO fix possible O(n^2), but has a low call rate, low pri
-                if (!bots.at(i)->enabled) {
-                    deleted++;
-                    Ship* s = bots.at(i);
-                    assert(bots.at(i) == botsTeamA->children.at(i));
-                    bots.erase(bots.begin()+i);
-                    botsTeamA->children.erase(botsTeamA->children.begin()+i);
-                    delete s;
-                } else {
-                    if (tmpDeltaBots < 0) {
-                        bots.at(i)->enabled = false;
-                        tmpDeltaBots++; // Work towards 0
-                        disabled++;
-                    } else if (tmpDeltaBots == 0) {
-                        break;
-                    }
-                }
-            }
-            printf("adaptive bot amount: Decreasing bots with %i (%i disabled, %i deleted) to a size of %lu active and a total %lu\n", deltaBots, disabled, deleted, bots.size()-disabled, bots.size());
-        }
-    }
-}
-
 int frameCount=0;
 int frameCount2=0;
 double sumTimeDelta=0;
@@ -308,12 +251,7 @@ void updateFrame(GLFWwindow* window) {
     sumTimeDelta += timeDelta;
     if (sumTimeDelta > 2.0f) {
         float fps = ((float)frameCount/(float)sumTimeDelta);
-        if (!isPaused) updateAmountBots(fps, sumTimeDelta);
-/*        int totalLasers = 0;
-        for (Ship* s : bots) {
-            totalLasers += s->lasers.size();
-        }
-        printf("Total lasers: %i\n", totalLasers);*/
+        if (!isPaused) updateAmountBots(bots, botsTeamA, fps, sumTimeDelta);
         printf("FPS: %f\n", fps);
         frameCount = 0;
         sumTimeDelta = 0;
