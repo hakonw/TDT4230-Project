@@ -73,6 +73,8 @@ CommandLineOptions options;
 ThreadPool pool(std::max(std::thread::hardware_concurrency(), (unsigned int) 2));
 bool useMultiThread = false;
 
+bool captureMouse = true; // A must for debugging as opengl steals the mouse
+
 bool isPaused = true;
 
 bool mouseLeftPressed   = false;
@@ -94,8 +96,11 @@ void placeLight3fvVal(int id, std::string field, glm::vec3 v3) {
 void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     options = gameOptions;
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-    glfwSetCursorPosCallback(window, mouseCallback);
+    if (captureMouse) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        glfwSetCursorPosCallback(window, mouseCallback);
+    }
+
 
     defaultShader = new Gloom::Shader();
     defaultShader->makeBasicShader("../res/shaders/simple.vert", "../res/shaders/simple.frag");
@@ -104,23 +109,33 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     skyBoxShader = new Gloom::Shader();
     skyBoxShader->makeBasicShader("../res/shaders/skybox.vert", "../res/shaders/skybox.frag");
 
+    // Configuration of skybox
+    PNGImage skyBoxTexture = loadPNGFile("../res/textures/space1.png");
+    skyBoxTextureID = getTextureID(&skyBoxTexture);
 
     // Create meshes
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
     Mesh sphere = generateSphere(1.0f, 10, 10);
 
-    // Fill buffers
-    unsigned int sphereVAO = generateBuffer(sphere);
-    unsigned int boxVAO  = generateBuffer(box);
 
     // Construct scene
     rootNode = new SceneNode();
-    boxNode  = new SceneNode();
+
+    // Init and configure sun node
+    unsigned int sphereVAO = generateBuffer(sphere);
     sunNode = new SceneNode();
-
-    rootNode->addChild(boxNode);
     rootNode->addChild(sunNode);
+    sunNode->vertexArrayObjectID = sphereVAO;
+    sunNode->VAOIndexCount = sphere.indices.size();
+    sunNode->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f); // Yellow
+    sunNode->position = sunPosition;
+    sunNode->scale = glm::vec3(sunRadius);
+    sunNode->rotation = {0, 0, 0 };
+    sunNode->ignoreLight = 1;
+    sunNode->boundingBoxDimension = glm::vec3(1.0f);
+    sunNode->hasBoundingBox = true;
 
+    // Init and configure bots node
     botsTeamA = new SceneNode(SceneNode::GROUP);
     rootNode->addChild(botsTeamA);
 
@@ -131,6 +146,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
         ship->collisionObjects.push_back(sunNode);
     }
     bots.at(0)->generateLaser(); // Lazy for for race condition (Note implement better cache structre) or pre-init
+
 
     // Lights
     sunLightNode = new SceneNode();
@@ -149,10 +165,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     staticLightNode->lightSourceID = 2;
     staticLightNode->position = glm::vec3(5.0f, 0.0f, -1.0f);
 
-    // From task 1, where each light had to be at a different place
-    //bots.at(0)->addChild(sunLightNode);
-    sunNode->addChild(sunLightNode);
-
     glm::vec3 c;
     c = glm::vec3(0.2f, 0.0f, 0.0f);
     c = glm::vec3(0.7f, 0.7f, 0.7f);
@@ -170,24 +182,16 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     placeLight3fvVal(staticLightNode->lightSourceID, "diffuseColor", c);
     placeLight3fvVal(staticLightNode->lightSourceID, "specularColor", c);
 
-    // Back to skeleton
+    sunNode->addChild(sunLightNode);
 
+    // Configuration of box node
+    unsigned int boxVAO  = generateBuffer(box);
+    boxNode  = new SceneNode();
+    rootNode->addChild(boxNode);
     boxNode->vertexArrayObjectID = boxVAO;
     boxNode->VAOIndexCount = box.indices.size();
     boxNode->nodeType = SceneNode::GEOMETRY_NORMAL_MAPPED;
 
-    sunNode->vertexArrayObjectID = sphereVAO;
-    sunNode->VAOIndexCount = sphere.indices.size();
-    sunNode->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f); // Yellow
-    sunNode->position = sunPosition;
-    sunNode->scale = glm::vec3(sunRadius);
-    sunNode->rotation = {0, 0, 0 };
-    sunNode->ignoreLight = 1;
-    sunNode->boundingBoxDimension = glm::vec3(1.0f);
-    sunNode->hasBoundingBox = true;
-
-
-    // Task 3 b
     PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
     PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
     PNGImage brickRoughMap = loadPNGFile("../res/textures/Brick03_rgh.png");
@@ -199,16 +203,13 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->textureID = brickTextureID;
     boxNode->roughnessMapID = brickRoughMapID;
 
-    PNGImage skyBoxTexture = loadPNGFile("../res/textures/space1.png");
-    skyBoxTextureID = getTextureID(&skyBoxTexture);
-
     //GLfloat lineWidthRange[2];
     //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
     glLineWidth(1);
 
-    getTimeDeltaSeconds();
+    double upstartTime = getTimeDeltaSeconds();
 
-    std::cout << fmt::format("Initialized scene with {} SceneNodes.", rootNode->totalChildren()) << std::endl;
+    std::cout << fmt::format("Initialized scene with (ish) {} SceneNodes in {} seconds.", rootNode->totalChildren(), upstartTime) << std::endl;
 
     std::cout << "Ready. Click to start!" << std::endl;
 
@@ -290,7 +291,9 @@ double sumTimeDelta=0;
 double sumTimeDelta2=0;
 void updateFrame(GLFWwindow* window) {
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    if (captureMouse) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
 
     double timeDelta = getTimeDeltaSeconds();
     sumTimeDelta2 += timeDelta;
@@ -306,6 +309,11 @@ void updateFrame(GLFWwindow* window) {
     if (sumTimeDelta > 2.0f) {
         float fps = ((float)frameCount/(float)sumTimeDelta);
         if (!isPaused) updateAmountBots(fps, sumTimeDelta);
+/*        int totalLasers = 0;
+        for (Ship* s : bots) {
+            totalLasers += s->lasers.size();
+        }
+        printf("Total lasers: %i\n", totalLasers);*/
         printf("FPS: %f\n", fps);
         frameCount = 0;
         sumTimeDelta = 0;
@@ -380,14 +388,20 @@ void updateFrame(GLFWwindow* window) {
 }
 
 void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transformationThusFar) {
-    glm::mat4 transformationMatrix =
-              glm::translate(node->position)
-            * glm::translate(node->referencePoint)
-            * glm::rotate(node->rotation.y, glm::vec3(0,1,0))
-            * glm::rotate(node->rotation.x, glm::vec3(1,0,0))
-            * glm::rotate(node->rotation.z, glm::vec3(0,0,1))
-            * glm::scale(node->scale)
-            * glm::translate(-node->referencePoint);
+    glm::mat4 transformationMatrix;
+    if (!node->staticRefScaleRot){
+        transformationMatrix =
+                glm::translate(node->position)
+                * glm::translate(node->referencePoint)
+                * glm::rotate(node->rotation.y, glm::vec3(0,1,0))
+                * glm::rotate(node->rotation.x, glm::vec3(1,0,0))
+                * glm::rotate(node->rotation.z, glm::vec3(0,0,1))
+                * glm::scale(node->scale)
+                * glm::translate(-node->referencePoint);
+    } else {
+        transformationMatrix = glm::translate(node->position)
+                             * node->refScaleRot;
+    }
 
     // 1b, save the model projection
     // Projection*View * Model
@@ -408,8 +422,6 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
     }
 
     switch(node->nodeType) {
-        case SceneNode::GEOMETRY: break;
-        case SceneNode::GEOMETRY_NORMAL_MAPPED: break;
         case SceneNode::POINT_LIGHT:
             {
                 glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
@@ -419,6 +431,8 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
                 glUniform3fv(location, 1, glm::value_ptr(pos3));
             }
             break;
+        case SceneNode::GEOMETRY: break;
+        case SceneNode::GEOMETRY_NORMAL_MAPPED: break;
         case SceneNode::GROUP: break;
         case SceneNode::LINE: break;
     }

@@ -35,12 +35,15 @@ public:
         this->nodeType = SceneNode::LINE;
 
         this->position = pos;
+        assert(glm::length(dir) > 0.1f);
         this->direction = glm::normalize(dir);
         this->rotation = calcEulerAngles(this->direction);
         this->scale = glm::vec3(this->length);
 
         this->material.baseColor = glm::vec3(1.0f, 0.0f, 0.0f);
         this->ignoreLight = true;
+
+        this->setStaticMat(); // Speed up matrix calculations by setting most fields static
     }
 
     void update(double deltaTime) {
@@ -49,7 +52,6 @@ public:
             this->position += (float) deltaTime * (this->direction * this->velocityMagnitude);
         } else {
             // Ask to be deleted
-            // TODO Ask to go back into a pool of lasers for later use?
             this->enabled = false;
         }
 

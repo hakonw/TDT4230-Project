@@ -62,7 +62,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         for (SceneNode *n : collisionObjects) {
             if (rayBoxIntersect(r, n->getBoundingBox()).intersect) {
                 this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
-                this->lasers.push_back(new Laser(this->position, n->position - this->position));
+                this->generateLaser();
             }
         }
 
@@ -70,16 +70,16 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         if (laserRefraction <= 0) {
             r = genRay(this->position, this->velocity);
             for (SceneNode *n : ships) {
-                RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
-                if (intersection.intersect && intersection.distance < Ship::laserViewDistance) {
-                    this->lasers.push_back(new Laser(this->position, n->position - this->position));
-                    this->laserRefraction = Ship::minLaserRefraction;
-                    break;
+                if (this != n) {
+                    RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
+                    if (intersection.intersect && intersection.distance < Ship::laserViewDistance) {
+                        this->generateLaser();
+                        this->laserRefraction = Ship::minLaserRefraction;
+                        break;
+                    }
                 }
             }
         }
-
-
 
 
         // Check if collision with box, and move back inside, as not to just go away infinitely
@@ -225,7 +225,6 @@ void Ship::barrierSafetyNet() {
 }
 
 void Ship::generateLaser() {
-    //LaserPtr l(new Laser(this->position, glm::normalize(this->velocity)));
     Laser* l = new Laser(this->position, glm::normalize(this->velocity));
     this->lasers.push_back(l);
 }

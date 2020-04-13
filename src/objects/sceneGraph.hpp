@@ -5,6 +5,8 @@
 #include <vector>
 #include <cstdio>
 #include "utilities/RayBoxIntersect.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/transform.hpp>
 
 struct Material {
     glm::vec3 baseColor = glm::vec3{1.0f, 1.0f, 1.0f};
@@ -64,6 +66,20 @@ public:
     glm::vec3 position;
     glm::vec3 rotation;
     glm::vec3 scale;
+
+    bool staticRefScaleRot = false;
+    glm::mat4 refScaleRot;
+
+    void setStaticMat() {
+        this->refScaleRot =
+            glm::translate(this->referencePoint)
+            * glm::rotate(this->rotation.y, glm::vec3(0,1,0))
+            * glm::rotate(this->rotation.x, glm::vec3(1,0,0))
+            * glm::rotate(this->rotation.z, glm::vec3(0,0,1))
+            * glm::scale(this->scale)
+            * glm::translate(-this->referencePoint);
+        staticRefScaleRot = true;
+    }
 
     Material material;
 

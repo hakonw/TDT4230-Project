@@ -34,7 +34,7 @@ private:
 
     const float minLaserRefraction = 0.4f; // How often (min) can the ship shoot in seconds
     const float laserViewDistance = 100.0f;
-    float laserRefraction = minLaserRefraction; //(float) (random() % (int)minLaserRefraction);
+    float laserRefraction = std::min(minLaserRefraction*5.0f, 5.0f); // Delay first laser
 
 public:
     glm::vec3 acceleration = glm::vec3(1.0f, 1.0f, 1.0f);

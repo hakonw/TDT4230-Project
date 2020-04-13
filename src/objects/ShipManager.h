@@ -5,7 +5,7 @@
 const static unsigned int minBots = 20; // if you cant handle this. Idk dude
 const static unsigned int maxBots = 2000; // A max, as what if there are too many
 
-const static unsigned int targetFps = 60; // Target should be 60 fps
+const static unsigned int targetFps = 40; // Target should be 60 fps
 const static unsigned int allowedFpsDelta = 10; // Try to stay inside 60+-10 fps
 
 static float weightedAverageFps = 0; // Should hovered around targetFps
