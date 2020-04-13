@@ -205,9 +205,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 }
 
 int frameCount=0;
-int frameCount2=0;
 double sumTimeDelta=0;
-double sumTimeDelta2=0;
 std::vector<int> mouseKeys = {GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_2};
 std::vector<int> keys = {};
 void updateFrame(GLFWwindow* window) {
@@ -217,11 +215,6 @@ void updateFrame(GLFWwindow* window) {
     }
 
     double timeDelta = getTimeDeltaSeconds();
-    sumTimeDelta2 += timeDelta;
-    if (frameCount2++ % 100 == 0) {
-        //printf("TimeDelta average last 100 frames: %f\n", sumTimeDelta2/100);
-        sumTimeDelta2 = 0.0f;
-    }
 
     // FPS estimate
     // Also responsible for adaptive bots amount
