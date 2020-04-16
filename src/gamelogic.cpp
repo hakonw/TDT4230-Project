@@ -238,6 +238,13 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
         );
     }
 
+    // create and attach depth buffer (renderbuffer)
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, windowWidth, windowHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+
     // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
     unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(2, attachments);
@@ -512,15 +519,20 @@ void renderFrame(GLFWwindow* window) {
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
     glViewport(0, 0, (GLint)(windowWidth), (GLint)(windowHeight));
 
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO); // Set multi-buffer
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear passed buffer to avoid windows xp looking bug
+
+    // Draw skybox
     glDepthMask(GL_FALSE);
-    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
     skyBoxShader->activate();
     renderSkybox();
     glDepthMask(GL_TRUE);
 
-
+    // Draw all other things
     defaultShader->activate();
     renderNode(rootNode);
+
+    // Reset to default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 /*    // 2. blur bright fragments with two-pass Gaussian Blur
@@ -539,12 +551,10 @@ void renderFrame(GLFWwindow* window) {
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
 
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDepthMask(GL_FALSE);
+    // Draw combined frame
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
     blurShader->activate();
-    glDepthMask(GL_TRUE);
     renderQ();
 
 
