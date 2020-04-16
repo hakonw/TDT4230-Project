@@ -84,7 +84,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     options = gameOptions;
 
     if (captureMouse) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         glfwSetCursorPosCallback(window, mouseCallback);
     }
 
@@ -204,15 +204,68 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     //glDisable(GL_CULL_FACE);
 }
 
+std::vector<int> mouseKeys = {GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_2};
+std::vector<int> keys = {GLFW_KEY_K, GLFW_KEY_M, GLFW_KEY_F1, GLFW_KEY_F4};
+void handleKeyboardInputGameLogic(GLFWwindow* window) {
+    // Update all keys
+    for (int key : keys) {
+        handleKeyboardInputs(key, glfwGetKey(window, key));
+    }
+    for (int key : mouseKeys) {
+        handleKeyboardInputs(key, glfwGetMouseButton(window, key));
+    }
+
+    // Toggle pausing
+    toggleBoolOnPress(isPaused, GLFW_MOUSE_BUTTON_2);
+
+    // Spawn lasers on all ships
+    if (getAndSetKeySinglePress(GLFW_MOUSE_BUTTON_1)) {
+        for (Ship *s : bots) {
+            s->generateLaser();
+        }
+    }
+
+    /* Debugg keybindings */
+
+    // Toggle use of multithread
+    toggleBoolOnPress(useMultiThread, GLFW_KEY_M);
+
+    // Toggle mouse lock (used for debugging)
+    if (getAndSetKeySinglePress(GLFW_KEY_K)) {
+        captureMouse = not captureMouse;
+        if (captureMouse) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        } else {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+    }
+
+    if (getAndSetKeySinglePress(GLFW_KEY_F1)) {
+        printf("Help:\n"
+               "  Movement:      WASD\n"
+               "  Up/down:       E/Q\n"
+               "  Pause:         Mouse click 2\n"
+               "  Force shoot:   Mouse click 1\n"
+               "  Gimbal lock:   G\n"
+               "  Multi thread:  M\n"
+               "  Help:          F1\n"
+               "  Show status:   F4\n"
+               "  Disable mouse: K\n"
+               );
+    }
+
+    if (getAndSetKeySinglePress(GLFW_KEY_F4)) {
+        printf("Status: \n"
+               "  Pause:       %i\n"
+               "  Multithread: %i\n"
+               "  Mouselock:   %i\n",
+               isPaused, useMultiThread, captureMouse);
+    }
+}
+
 int frameCount=0;
 double sumTimeDelta=0;
-std::vector<int> mouseKeys = {GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_2};
-std::vector<int> keys = {};
 void updateFrame(GLFWwindow* window) {
-
-    if (captureMouse) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
 
     double timeDelta = getTimeDeltaSeconds();
 
@@ -228,17 +281,10 @@ void updateFrame(GLFWwindow* window) {
         sumTimeDelta = 0;
     }
 
-    for (int key : keys) {
-        handleKeyboardInputs(key, glfwGetKey(window, key));
-    }
-    for (int key : mouseKeys) {
-        handleKeyboardInputs(key, glfwGetMouseButton(window, key));
-    }
+    // Handle keyboard input
+    handleKeyboardInputGameLogic(window);
 
-    // Game logic, pausing
-    if (getAndSetKeySinglePress(GLFW_MOUSE_BUTTON_2)) {
-        isPaused = not isPaused;
-    }
+    // Gamelogic
     if (!isPaused) {
         //bots.at(0).printShip();
         std::vector<std::future<void>> futures;
@@ -255,25 +301,13 @@ void updateFrame(GLFWwindow* window) {
         for (auto &future : futures) {
             future.get();
         }
-
-        if (getAndSetKeySinglePress(GLFW_MOUSE_BUTTON_1)) {
-            for (Ship* s : bots) {
-                s->generateLaser();
-            }
-        }
     }
-
 
     // Move camera and calculate view matrix
     camera.detectKeyboardInputs(window);
     camera.updateCamera(timeDelta);
     glm::mat4 cameraTransform = camera.getViewMatrix();
-
     glm::mat4 VP = projection * cameraTransform;
-
-    // Move and rotate various SceneNodes
-    boxNode->position = { 0, -10, 0 };
-
 
     // update uniforms that doesnt change that often (once per draw)
     glUniform3fv(10, 1, glm::value_ptr(camera.getCameraPosition()));

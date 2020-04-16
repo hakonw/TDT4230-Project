@@ -2,17 +2,19 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 #include <assert.h>
+#include <cstdio>
+
+#define DEBUG false
 
 GLboolean keysInUse[512];
 GLboolean keysCanToggle[512];
 
 bool keyInUse(int key) {
-    assert(0<=key);
-    assert(key<512);
     return keysInUse[key];
 }
 
 bool getAndSetKeySinglePress(int key){
+    if (key < 0 || key >= 512) return false; // Remove all keys outside allowed interval
     if (keysCanToggle[key]) {
         if (keysInUse[key]) {
             keysCanToggle[key] = false;
@@ -20,6 +22,13 @@ bool getAndSetKeySinglePress(int key){
         }
     }
     return false;
+}
+
+void toggleBoolOnPress(bool &b, int key) {
+    if (getAndSetKeySinglePress(key)) {
+        b = not b;
+        if (DEBUG) printf("Toggle key: %i to %i\n", key, b);
+    }
 }
 
 void handleKeyboardInputs(int key, int action)

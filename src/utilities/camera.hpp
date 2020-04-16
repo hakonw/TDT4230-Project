@@ -136,7 +136,7 @@ namespace Gloom
                 keysInUse[GLFW_KEY_G] = false;
                 keysCanToggle[GLFW_KEY_G] = false;
                 gimbalLock = !gimbalLock;
-                printf("Toggle %i\n", gimbalLock);
+                printf("GimbalLock: %i\n", gimbalLock);
             }
 
             if (keysInUse[GLFW_KEY_W])  // forward
