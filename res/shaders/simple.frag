@@ -20,7 +20,8 @@ uniform layout(binding = 3) sampler2D samplerRoughness;
 
 uniform layout(location = 12) int ignoreLight = 0;
 
-out vec4 color;
+layout (location = 0) out vec4 color;
+layout (location = 1) out vec4 brightColor;
 
 
 float rand(vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); }
@@ -144,5 +145,14 @@ void main()
     }
 
     color = color + dither(textureCoordinates);
+
+    float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.0) {
+        brightColor = vec4(color.rgb, 1.0);
+    } else {
+        brightColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+
 
 }

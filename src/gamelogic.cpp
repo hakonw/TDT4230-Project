@@ -30,6 +30,7 @@ Gloom::Camera camera;
 
 SceneNode* rootNode;
 SceneNode* boxNode;
+SceneNode* boxUnitNode;
 SceneNode* sunNode;
 
 SceneNode* sunLightNode;
@@ -53,7 +54,13 @@ double sunRadius = 15.0f;
 // These are heap allocated, because they should not be initialised at the start of the program
 Gloom::Shader* defaultShader;
 Gloom::Shader* skyBoxShader;
+Gloom::Shader* blurShader;
 unsigned int skyBoxTextureID;
+
+unsigned int hdrFBO;
+unsigned int colorBuffers[2];
+unsigned int pingpongFBO[2];
+unsigned int pingpongColorbuffers[2];
 
 //const glm::vec3 boxDimensions(180, 90, 90);
 //const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
@@ -96,6 +103,10 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     skyBoxShader = new Gloom::Shader();
     skyBoxShader->makeBasicShader("../res/shaders/skybox.vert", "../res/shaders/skybox.frag");
 
+    blurShader = new Gloom::Shader();
+    blurShader->makeBasicShader("../res/shaders/blur.vert", "../res/shaders/blur.frag");
+    printf("Blur shader status: %i\n|", blurShader->isValid());
+
     // Configuration of skybox
     PNGImage skyBoxTexture = loadPNGFile("../res/textures/space1.png");
     skyBoxTextureID = getTextureID(&skyBoxTexture);
@@ -103,7 +114,13 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     // Create meshes
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
     Mesh sphere = generateSphere(1.0f, 10, 10);
+    Mesh unitBox = cube(glm::vec3(2.0f), glm::vec2(1.0f), false, true);
 
+    unsigned int boxUnitVAO = generateBuffer(unitBox);
+    boxUnitNode = new SceneNode();
+    boxUnitNode->vertexArrayObjectID = boxUnitVAO;
+    boxUnitNode->VAOIndexCount = box.indices.size();
+    boxUnitNode->nodeType = SceneNode::GEOMETRY;
 
     // Construct scene
     rootNode = new SceneNode();
@@ -177,6 +194,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->vertexArrayObjectID = boxVAO;
     boxNode->VAOIndexCount = box.indices.size();
     boxNode->nodeType = SceneNode::GEOMETRY;
+    boxNode->enabled = false;
 
     PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
     //PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
@@ -198,6 +216,53 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     std::cout << fmt::format("Initialized scene with (ish) {} SceneNodes in {} seconds.", rootNode->totalChildren(), upstartTime) << std::endl;
 
     std::cout << "Ready. Click to start!" << std::endl;
+
+    // set up floating point framebuffer to render scene to
+    glGenFramebuffers(1, &hdrFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    glGenTextures(2, colorBuffers);
+    for (unsigned int i = 0; i < 2; i++)
+    {
+        glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
+        //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->pixels.data());
+        glTexImage2D(
+                GL_TEXTURE_2D, 0, GL_RGB16F, windowWidth, windowHeight, 0, GL_RGB, GL_FLOAT, NULL
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        // attach texture to framebuffer
+        glFramebufferTexture2D(
+                GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0
+        );
+    }
+
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
+    unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, attachments);
+    // finally check if framebuffer is complete
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "Framebuffer not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // ping-pong-framebuffer for blurring
+    glGenFramebuffers(2, pingpongFBO);
+    glGenTextures(2, pingpongColorbuffers);
+    for (unsigned int i = 0; i < 2; i++)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+        glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, windowWidth, windowHeight, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // we clamp to the edge as the blur filter would otherwise sample repeated texture values!
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongColorbuffers[i], 0);
+        // also check if framebuffers are complete (no need for depth buffer)
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "Framebuffer not complete!" << std::endl;
+    }
 
     // Debug settings
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -426,8 +491,6 @@ void renderNode(SceneNode* node) {
 }
 
 void renderSkybox(){
-    skyBoxShader->activate();
-    glDepthMask(GL_FALSE);
     glBindTextureUnit(0, skyBoxTextureID);
 
     glm::mat4 cameraTransform = camera.getViewMatrixRotOnly();
@@ -436,16 +499,52 @@ void renderSkybox(){
 
     glBindVertexArray((GLuint)(boxNode->vertexArrayObjectID));
     glDrawElements(GL_TRIANGLES, boxNode->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+}
 
-    glDepthMask(GL_TRUE);
-    defaultShader->activate(); // Return to default shader
 
+void renderQ() {
+    glBindVertexArray((GLuint)(boxUnitNode->vertexArrayObjectID));
+    glDrawElements(GL_TRIANGLES, boxUnitNode->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
 }
 
 void renderFrame(GLFWwindow* window) {
     int windowWidth, windowHeight;
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
     glViewport(0, 0, (GLint)(windowWidth), (GLint)(windowHeight));
+
+    glDepthMask(GL_FALSE);
+    skyBoxShader->activate();
     renderSkybox();
+    glDepthMask(GL_TRUE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    defaultShader->activate();
     renderNode(rootNode);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+/*    // 2. blur bright fragments with two-pass Gaussian Blur
+    // --------------------------------------------------
+    bool horizontal = true, first_iteration = true;
+    unsigned int amount = 1;
+    blurShader->activate();
+    for (unsigned int i = 0; i < amount; i++)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+        glBindTexture(GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingpongColorbuffers[!horizontal]);  // bind texture of other framebuffer (or scene if first iteration)
+        renderSkybox();
+        horizontal = !horizontal;
+        if (first_iteration)
+            first_iteration = false;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
+
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+    blurShader->activate();
+    renderQ();
+
+
+    defaultShader->activate();
 }
