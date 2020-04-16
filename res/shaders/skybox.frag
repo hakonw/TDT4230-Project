@@ -5,9 +5,11 @@ in layout(location = 0) vec2 textureCoordinates;
 
 uniform layout(binding = 0) sampler2D sampler;
 
-out vec4 color;
+layout (location = 0) out vec4 color;
+layout (location = 1) out vec4 brightColor;
 
 void main()
 {
     color = texture(sampler, textureCoordinates);
+    brightColor = color;
 }

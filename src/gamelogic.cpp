@@ -513,15 +513,15 @@ void renderFrame(GLFWwindow* window) {
     glViewport(0, 0, (GLint)(windowWidth), (GLint)(windowHeight));
 
     glDepthMask(GL_FALSE);
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
     skyBoxShader->activate();
     renderSkybox();
     glDepthMask(GL_TRUE);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+
     defaultShader->activate();
     renderNode(rootNode);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 
 /*    // 2. blur bright fragments with two-pass Gaussian Blur
     // --------------------------------------------------
@@ -540,9 +540,11 @@ void renderFrame(GLFWwindow* window) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
 
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDepthMask(GL_FALSE);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
     blurShader->activate();
+    glDepthMask(GL_TRUE);
     renderQ();
 
 
