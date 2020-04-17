@@ -141,6 +141,8 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode = new Box(boxDimensions, true);
     rootNode->addChild(boxNode);
     boxNode->position = glm::vec3(0.0f);
+    boxNode->hasBoundingBox = true;
+    boxNode->boundingBoxDimension = boxDimensions;
     boxNode->setStaticMat(); // Speed up matrix calculation as the object is not moved
 
     PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
@@ -165,6 +167,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
         botsTeam->addChild(ship); // Add it to be rendered
         ship->collisionObjects.push_back(sunNode);
         ship->collisionObjects.push_back(boxNode);
+        ship->collisionObjects.push_back(asteroidNode);
     }
     bots.at(0)->generateLaser(); // Lazy fix for race condition (Note implement better cache structre) or pre-init
 

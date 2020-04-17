@@ -64,9 +64,9 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         for (SceneNode *n : collisionObjects) {
             if (!n->hasBoundingBox) continue;
 
-            const RayIntersection &intersection = rayBoxIntersect(r, n->getBoundingBox());
+            RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
             if (intersection.intersect && intersection.distance < perceptionCollisionRadius) {
-                glm::vec3 antiCollisionForce = generateAntiCollisionForce(collisionObjects);
+                glm::vec3 antiCollisionForce = generateAntiCollisionForce(n);
                 this->acceleration += antiCollisionForce * this->weightAntiCollision;
                 this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
             }
@@ -127,7 +127,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
 const int spherePoints = 40;
 const float goldenRatio = (1.0f + std::pow(5.0f, 0.5f))/2.0f;
 const float circleFactor = 0.7f;
-glm::vec3 Ship::generateAntiCollisionForce(const std::vector<SceneNode*> &collisionObjects) {
+glm::vec3 Ship::generateAntiCollisionForce(SceneNode *collisionObject) {
     // Assumes collision is "imminent"
     // Calculate possible escape-paths
     // https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/44164075#44164075
@@ -153,14 +153,12 @@ glm::vec3 Ship::generateAntiCollisionForce(const std::vector<SceneNode*> &collis
 
         glm::vec3 dirWithFront = rotationMatrix*dir;
 
-        for (SceneNode *node : collisionObjects) {
-            assert(node != this);
-            Ray r = genRay(this->position, dirWithFront);
-            const RayIntersection &intersection = rayBoxIntersect(r, node->getBoundingBox());
-            if (not (intersection.intersect && intersection.distance < perceptionCollisionRadius)) {
-                // There is a 'safe' way to avoid the collision
-                return getForceFromVec(dirWithFront);
-            }
+        Ray r = genRay(this->position, dirWithFront);
+        RayIntersection intersection = rayBoxIntersect(r, collisionObject->getBoundingBox());
+        if (!intersection.intersect || intersection.distance >= perceptionCollisionRadius) {
+            // There is a 'safe' way to avoid the collision
+            //lasers.push_back(new Laser(this->position, dirWithFront));
+            return getForceFromVec(dirWithFront);
         }
     }
     return getForceFromVec(this->velocity * -1.0f);
@@ -250,7 +248,8 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
 //  z box dim: 90/2 -80 = -35  -> -125,
 //const glm::vec3 boxOffset(0, -10, -80);
 const glm::vec3 boxOffset = glm::vec3(0, 0, 0);
-const glm::vec3 boxDimensions = glm::vec3(90, 90, 90)*2.0f;
+//const glm::vec3 boxDimensions = glm::vec3(90, 90, 90)*2.0f;
+const glm::vec3 boxDimensions(380.0f, 380.0f, 380.0f);
 void Ship::barrierSafetyNet() {
     float x = this->position.x;
     float y = this->position.y;
