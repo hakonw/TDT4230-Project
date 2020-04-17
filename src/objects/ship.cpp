@@ -63,6 +63,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         Ray r = genRay(this->position, this->velocity);
         for (SceneNode *n : collisionObjects) {
             if (!n->hasBoundingBox) continue;
+            if (n->hasTinyBoundingBox && glm::length(n->position - this->position) + tinyBoundingBoxSize*1.2f < perceptionRadius) continue;
 
             RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
             if (intersection.intersect && intersection.distance < perceptionCollisionRadius) {
@@ -77,13 +78,14 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         if (laserRefraction <= 0) {
             r = genRay(this->position, this->velocity);
             for (SceneNode *n : ships) {
-                break;
                 if (this != n) {
-                    RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
-                    if (intersection.intersect && intersection.distance < Ship::laserViewDistance) {
-                        this->generateLaser();
-                        this->laserRefraction = Ship::minLaserRefraction;
-                        break;
+                    if (glm::length(n->position - this->position) < Ship::laserViewDistance) {
+                        RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
+                        if (intersection.intersect) {
+                            this->generateLaser();
+                            this->laserRefraction = Ship::minLaserRefraction;
+                            break;
+                        }
                     }
                 }
             }
@@ -249,7 +251,7 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
 //const glm::vec3 boxOffset(0, -10, -80);
 const glm::vec3 boxOffset = glm::vec3(0, 0, 0);
 //const glm::vec3 boxDimensions = glm::vec3(90, 90, 90)*2.0f;
-const glm::vec3 boxDimensions(380.0f, 380.0f, 380.0f);
+const glm::vec3 boxDimensions(260.0f, 260.0f, 260.0f);
 void Ship::barrierSafetyNet() {
     float x = this->position.x;
     float y = this->position.y;

@@ -109,6 +109,8 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     sunNode->ignoreLight = 1;
     sunNode->boundingBoxDimension = glm::vec3(1.0f * 2.0f + 0.1f); // Sphere radius, not sunScaleRadius + a bit extra
     sunNode->hasBoundingBox = true;
+    sunNode->hasTinyBoundingBox = true;
+    sunNode->tinyBoundingBoxSize = (float)sunRadius; // Approximate AABB with radius
 
     asteroidNode = new SceneNode();
     sunNode->addChild(asteroidNode);
@@ -121,6 +123,9 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     asteroidNode->rotation = {0, 0, 0 };
     asteroidNode->boundingBoxDimension = glm::vec3(1.0f * 2.0f + 1.0f);
     asteroidNode->hasBoundingBox = true;
+    asteroidNode->hasTinyBoundingBox = true;
+    asteroidNode->tinyBoundingBoxSize = 4.0f; // Approximate AABB with radius
+
 
     // Lights
     sunLightNode = new SceneNode();
