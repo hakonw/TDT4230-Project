@@ -2,6 +2,7 @@
 #extension GL_ARB_explicit_uniform_location : require
 
 in layout(location = 0) vec3 position;
+// location 1 is normals, which is unused for the  skybox
 in layout(location = 2) vec2 textureCoordinates_in;
 uniform layout(location = 3) mat4 VP;
 

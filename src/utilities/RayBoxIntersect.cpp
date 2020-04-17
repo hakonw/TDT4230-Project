@@ -22,7 +22,7 @@ BoundingBox genBoundingBox(glm::vec3 position, glm::vec3 dimension, glm::vec3 sc
     };
     /*
      // This is more correct
-     // But as orientiation isnt important, spare a few cycles, even tho it should be branchless and fast
+     // But as orientation isn't important, spare a few cycles, even tho it should be branchless and fast
     glm::vec3 vmin;
     glm::vec3 vmax;
 

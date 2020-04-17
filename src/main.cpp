@@ -70,7 +70,7 @@ GLFWwindow* initialise()
 
 int main(int argc, const char* argb[])
 {
-    arrrgh::parser parser("glowbox", "Small breakout like juggling game");
+    arrrgh::parser parser("glowbox", "I like the name so i kept it");
     const auto& showHelp = parser.add<bool>("help", "Show this help message.", 'h', arrrgh::Optional, false);
 
     // If you want to add more program arguments, define them here,

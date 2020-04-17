@@ -3,7 +3,7 @@
 #include <utilities/window.hpp>
 #include "objects/sceneGraph.hpp"
 
-//void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transformationThusFar);
+void renderNode(SceneNode* node);
 void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transformationThusFar);
 void initGame(GLFWwindow* window, CommandLineOptions options);
 void updateFrame(GLFWwindow* window);

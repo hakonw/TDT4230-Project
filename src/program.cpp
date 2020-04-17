@@ -2,10 +2,6 @@
 #include "program.hpp"
 #include "utilities/window.hpp"
 #include "gamelogic.h"
-#include <utilities/glutils.h>
-
-#define DEBUG 0
-#define printDebug(string) if (DEBUG) { fprintf(stderr, string); printGLError(); }
 
 void runProgram(GLFWwindow* window, CommandLineOptions options)
 {
@@ -37,7 +33,6 @@ void runProgram(GLFWwindow* window, CommandLineOptions options)
 
         updateFrame(window);
         renderFrame(window);
-        printDebug("Post-render: ")
         printGLError();
 
         // Handle other events

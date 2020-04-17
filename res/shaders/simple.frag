@@ -8,9 +8,10 @@ in layout(location = 4) mat3 tbn;
 
 // Uniforms
 uniform layout(location = 10) vec3 cameraPos;
-uniform layout(location = 11) vec3 ballPos; // 2c
-float ballRadius = 3.0f; // 2c
+uniform layout(location = 11) vec3 ballPos;
+float ballRadius = 3.0f;
 
+// Uniform locations messed up from refactorings, expocit uniform required!
 uniform layout(location = 7) int useTexture;
 uniform layout(binding = 1) sampler2D samplerTexture;
 uniform layout(location = 8) int useNormalMap;
@@ -22,20 +23,14 @@ uniform layout(location = 12) int ignoreLight = 0;
 
 out vec4 color;
 
-
 float rand(vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); }
 float dither(vec2 uv) { return (rand(uv)*2.0-1.0) / 256.0; }
 
-float ambientStrength = 0.15f;
+const float ambientStrength = 0.15f;
+const float l_constant = 0.5; // l_a,  i hate the bright light close to the source, so this is tuned WAAY down
+const float l_linear = 0.0001; // l_b
+const float l_quadratic = 0.0001; // l_c
 
-// Task 2a
-float l_constant = 0.5; // l_a,  i hate the bright light close to the source, so this is tuned WAAY down
-float l_linear = 0.0001; // l_b
-float l_quadratic = 0.0001; // l_c
-
-//float noiseStrength = 0.01f;
-
-// Task 3a
 struct PointLight {
     vec3 position;
     vec3 ambientColor;
@@ -51,13 +46,12 @@ struct Material {
 uniform Material material;
 
 #define NUM_POINT_LIGHTS 1
-uniform PointLight pointLights[NUM_POINT_LIGHTS];
+uniform PointLight pointLights[NUM_POINT_LIGHTS]; // Must be the same or smaller than current lights
+// Current lights should be an uniform
 
-// 1d
 vec3 calcPointLight(PointLight pointLight, vec3 norm, vec3 fragPos, vec3 viewDir, vec3 lightDir, float lightRatio) {
     vec3 result = vec3(0.0f);
 
-    // 2a
     float distance = length(pointLight.position - fragPos);
     float attenuation = 1.0f / (l_constant + l_linear * distance + l_quadratic * (distance*distance));
 
@@ -69,7 +63,7 @@ vec3 calcPointLight(PointLight pointLight, vec3 norm, vec3 fragPos, vec3 viewDir
     float diffuseIntensity = max(dot(lightDir, norm), 0.0f);
     result += pointLight.diffuseColor*diffuseIntensity*attenuation*lightRatio;
 
-    // Specular light 1h
+    // Specular light
     float spec = 32; // Default shinyness factor
     if (useRoughnessMap == 1) {
         vec4 roughnessSample = texture(samplerRoughness, textureCoordinates);
@@ -133,16 +127,13 @@ void main()
         result = vec3(1.0f);
     }
 
-
-    result = result * material.baseColor; // light level & basecolor
     color = vec4(result, 1.0f);
 
     if (useTexture == 1) {
         color = texture(samplerTexture, textureCoordinates) * color;
-        // To test
-        //color = vec4(tbn * (texture(samplerNormal, textureCoordinates).xyz * 2.0f - 1.0f), 1.0f);
+    } else {
+        color = vec4(color.rgb * material.baseColor, color.a);
     }
 
     color = color + dither(textureCoordinates);
-
 }

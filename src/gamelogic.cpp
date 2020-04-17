@@ -16,15 +16,10 @@
 #include "objects/ship.h"
 #include "objects/shipManager.h"
 #include "utilities/camera.hpp"
-#include "objects/laser.h"
 #include <ThreadPool.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 #include <utilities/buttonHandler.h>
-
-enum KeyFrameAction {
-    BOTTOM, TOP
-};
 
 Gloom::Camera camera;
 
@@ -33,33 +28,23 @@ SceneNode* boxNode;
 SceneNode* sunNode;
 
 SceneNode* sunLightNode;
-SceneNode* staticLightNode;
-SceneNode* padLightNode;
 
-glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
+SceneNode* botsTeam;
 
 #define DEFAULT_ALLOWED_BOTS 300
 std::vector <Ship*> bots;
-//std::vector <Ship> &Ship::ships = bots;
 
-SceneNode* botsTeamA;
+glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
 
-void renderNode(SceneNode* node);
-
-#define NUM_POINT_LIGHTS 3
-
-double sunRadius = 15.0f;
 
 // These are heap allocated, because they should not be initialised at the start of the program
 Gloom::Shader* defaultShader;
 Gloom::Shader* skyBoxShader;
 unsigned int skyBoxTextureID;
 
-//const glm::vec3 boxDimensions(180, 90, 90);
-//const glm::vec3 boxDimensions(180*1.5f, 90*1.5f, 90*1.5f);
 const glm::vec3 boxDimensions(250.0f, 250.0f, 250.0f);
-
-glm::vec3 sunPosition(0, 0, 0);
+const double sunRadius = 15.0f;
+const glm::vec3 sunPosition(0, 0, 0);
 
 CommandLineOptions options;
 
@@ -67,14 +52,15 @@ ThreadPool pool(std::max(std::thread::hardware_concurrency(), (unsigned int) 2))
 bool useMultiThread = false;
 
 bool captureMouse = true; // A must for debugging as opengl steals the mouse
-
 bool isPaused = true;
 
 void mouseCallback(GLFWwindow* window, double x, double y) {
-    camera.handleCursorPosInput(x, y);
+    if (captureMouse) {
+        camera.handleCursorPosInput(x, y);
+    }
 }
 
-void placeLight3fvVal(int id, std::string field, glm::vec3 v3) {
+void placeLight3fvVal(int id, const std::string& field, glm::vec3 &v3) {
     std::string uniformName = fmt::format("pointLights[{}].{}", id, field);
     GLint location = defaultShader->getUniformFromName(uniformName);
     glUniform3fv(location, 1, glm::value_ptr(v3));
@@ -112,7 +98,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     unsigned int sphereVAO = generateBuffer(sphere);
     sunNode = new SceneNode();
     rootNode->addChild(sunNode);
-    sunNode->vertexArrayObjectID = sphereVAO;
+    sunNode->vertexArrayObjectID = (int) sphereVAO;
     sunNode->VAOIndexCount = sphere.indices.size();
     sunNode->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
     sunNode->position = sunPosition;
@@ -121,52 +107,33 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     sunNode->ignoreLight = 1;
     sunNode->boundingBoxDimension = glm::vec3(1.0f * 2.0f + 0.1f); // Sphere radius, not sunScaleRadius + a bit extra
     sunNode->hasBoundingBox = true;
+    sunNode->setStaticMat(); // Speed up matrix calculation as the object is not moved
 
     // Lights
     sunLightNode = new SceneNode();
-    padLightNode = new SceneNode();
-    staticLightNode = new SceneNode();
 
     sunLightNode->nodeType = SceneNode::POINT_LIGHT;
     sunLightNode->lightSourceID = 0;
     sunLightNode->position = glm::vec3(0.0f, 0.0, 0.0f);
-
-    padLightNode->nodeType = SceneNode::POINT_LIGHT;
-    padLightNode->lightSourceID = 1;
-    padLightNode->position = glm::vec3(0.0f, 0.0f, -1.0f);
-
-    staticLightNode->nodeType = SceneNode::POINT_LIGHT;
-    staticLightNode->lightSourceID = 2;
-    staticLightNode->position = glm::vec3(5.0f, 0.0f, -1.0f);
+    sunLightNode->setStaticMat();
 
     glm::vec3 c;
-    c = glm::vec3(0.2f, 0.0f, 0.0f);
     c = glm::vec3(0.7f, 0.7f, 0.7f);
     placeLight3fvVal(sunLightNode->lightSourceID, "ambientColor", c);
     placeLight3fvVal(sunLightNode->lightSourceID, "diffuseColor", c);
     placeLight3fvVal(sunLightNode->lightSourceID, "specularColor", c);
-
-    c = glm::vec3(0.0f, 0.0f, 0.2f);
-    placeLight3fvVal(padLightNode->lightSourceID, "ambientColor", c);
-    placeLight3fvVal(padLightNode->lightSourceID, "diffuseColor", c);
-    placeLight3fvVal(padLightNode->lightSourceID, "specularColor", c);
-
-    c = glm::vec3(0.0f, 0.2f, 0.0f);
-    placeLight3fvVal(staticLightNode->lightSourceID, "ambientColor", c);
-    placeLight3fvVal(staticLightNode->lightSourceID, "diffuseColor", c);
-    placeLight3fvVal(staticLightNode->lightSourceID, "specularColor", c);
-
     sunNode->addChild(sunLightNode);
 
     // Configuration of box node
     unsigned int boxVAO  = generateBuffer(box);
     boxNode  = new SceneNode();
     rootNode->addChild(boxNode);
-    boxNode->vertexArrayObjectID = boxVAO;
+    boxNode->vertexArrayObjectID = (int)boxVAO;
     boxNode->VAOIndexCount = box.indices.size();
     boxNode->nodeType = SceneNode::GEOMETRY;
     boxNode->boundingBoxDimension = boxDimensions;
     boxNode->hasBoundingBox = true;
+    boxNode->setStaticMat();
 
     PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
     //PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
@@ -180,13 +147,14 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     //boxNode->roughnessMapID = brickRoughMapID;
 
     // Init and configure bots node
-    botsTeamA = new SceneNode(SceneNode::GROUP);
-    rootNode->addChild(botsTeamA);
+    botsTeam = new SceneNode(SceneNode::GROUP);
+    botsTeam->setStaticMat();
+    rootNode->addChild(botsTeam);
 
     for (int i=0; i<DEFAULT_ALLOWED_BOTS; i++) {
         Ship* ship = new Ship();
         bots.push_back(ship);
-        botsTeamA->addChild(ship); // Add it to be rendered
+        botsTeam->addChild(ship); // Add it to be rendered
         ship->collisionObjects.push_back(sunNode);
         ship->collisionObjects.push_back(boxNode);
     }
@@ -278,7 +246,7 @@ void updateFrame(GLFWwindow* window) {
     sumTimeDelta += timeDelta;
     if (sumTimeDelta > 2.0f) {
         float fps = ((float)frameCount/(float)sumTimeDelta);
-        if (!isPaused) updateAmountBots(bots, botsTeamA, fps, sumTimeDelta);
+        if (!isPaused) updateAmountBots(bots, botsTeam, fps, sumTimeDelta);
         printf("FPS: %f\n", fps);
         frameCount = 0;
         sumTimeDelta = 0;
@@ -333,14 +301,12 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
                              * node->refScaleRot;
     }
 
-    // 1b, save the model projection
     // Projection*View * Model
     node->currentModelTransformationMatrix = transformationThusFar * transformationMatrix; // M
     node->currentTransformationMatrix = VP * node->currentModelTransformationMatrix; // MVP
 
-    // 1d
     // Compute transpose of the inverse of the model matrix
-    // Take the mat3 out of it
+    // To fix normals inside the shader
     // https://stackoverflow.com/questions/10879864/what-extractly-mat3a-mat4-matrix-statement-in-glsl-do
     node->currentNormalMatrix = glm::mat3(glm::transpose(glm::inverse(node->currentModelTransformationMatrix)));
 
@@ -404,7 +370,6 @@ void renderNode(SceneNode* node) {
 
         // Set object material
         if (node->vertexArrayObjectID != -1) {
-            // TODO use uniform buffer instead?
             GLint location = defaultShader->getUniformFromName("material.baseColor");
             glUniform3fv(location, 1, glm::value_ptr(node->material.baseColor));
             location = defaultShader->getUniformFromName("material.shininess");
@@ -418,6 +383,14 @@ void renderNode(SceneNode* node) {
                 if(node->vertexArrayObjectID != -1) {
                     glBindVertexArray((GLuint)(node->vertexArrayObjectID));
                     glDrawElements(GL_TRIANGLES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+                }
+                break;
+            case SceneNode::LINE:
+                {
+                    if(node->vertexArrayObjectID != -1) {
+                        glBindVertexArray((GLuint)node->vertexArrayObjectID);
+                        glDrawElements(GL_LINES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
+                    }
                 }
                 break;
             case SceneNode::GEOMETRY_NORMAL_MAPPED:
@@ -440,14 +413,6 @@ void renderNode(SceneNode* node) {
                 break;
             case SceneNode::POINT_LIGHT: break;
             case SceneNode::GROUP: break;
-            case SceneNode::LINE:
-                {
-                    if(node->vertexArrayObjectID != -1) {
-                        glBindVertexArray((GLuint)node->vertexArrayObjectID);
-                        glDrawElements(GL_LINES, node->VAOIndexCount, GL_UNSIGNED_INT, nullptr);
-                    }
-                }
-                break;
         }
     }
 

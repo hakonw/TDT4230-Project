@@ -136,10 +136,6 @@ public:
                 SceneNode::vertexArrayObjectID, SceneNode::nodeType);
     }
 
-    static void printNode(SceneNode *node) {
-        node->printNode();
-    }
-
     int totalChildren() {
         int count = SceneNode::children.size();
         for (SceneNode *child : SceneNode::children) {
@@ -149,7 +145,7 @@ public:
     }
 
     // AS long as the node isnt used (as with multi threading), deleting is safe
-    // Cleaning should be done in a single thread or no children for safety
+    // Cleaning should be done in a single thread or when there is no children for safety
     virtual ~SceneNode() {
         for (SceneNode* node : this->getIndependentChildren() ) {
                 delete node;

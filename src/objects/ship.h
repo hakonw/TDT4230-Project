@@ -54,8 +54,6 @@ public:
         return std::vector<SceneNode*>(lasers.begin(), lasers.end());
     }
 
-    std::vector<SceneNode* > attractors;
-
     void printShip();
 
     Ship() : SceneNode(), id(++total) {

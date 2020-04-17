@@ -1,7 +1,6 @@
 
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
-#include <assert.h>
 #include <cstdio>
 
 #define DEBUG false

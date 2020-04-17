@@ -3,7 +3,6 @@
 #include "utilities/glutils.h"
 #include "sceneGraph.hpp"
 #include <glm/gtc/random.hpp>
-#include <glm/vec3.hpp>
 #include "laser.h"
 #include <cmath>
 
@@ -103,7 +102,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         speed = glm::clamp(speed, this->minVelocity, this->maxVelocity);
         this->velocity = speed * direction;
 
-        // Update the ships possition
+        // Update the ships position
         this->position += (float) deltaTime * this->velocity; // x = x0 + v*t
 
         // Set rotation
@@ -125,9 +124,9 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     //printShip();
 }
 
-const int spherePoints = 100;
+const int spherePoints = 40;
 const float goldenRatio = (1.0f + std::pow(5.0f, 0.5f))/2.0f;
-const float sircleFactor = 0.5f;
+const float circleFactor = 0.7f;
 glm::vec3 Ship::generateAntiCollisionForce(const std::vector<SceneNode*> &collisionObjects) {
     // Assumes collision is "imminent"
     // Calculate possible escape-paths
@@ -142,9 +141,9 @@ glm::vec3 Ship::generateAntiCollisionForce(const std::vector<SceneNode*> &collis
 
     // Calculate it before, waisted resources vs readable code, or lazy evaluation instead?
     for (int i=0; i<spherePoints; i++) {
-        float t = (float)i/((float)(spherePoints-1))*sircleFactor; // 0 -> 1*fac
+        float t = (float)i/((float)(spherePoints-1))*circleFactor; // 0 -> 1*fac, to not draw the entire sphere
         float inclination = std::acos(1.0f - 2.0f * t);
-        float azimuth = 2.0f * M_PI * goldenRatio * i;
+        float azimuth =  2.0f * M_PI * goldenRatio * i;
 
         float x = std::sin(inclination) * std::cos(azimuth);
         float y = std::sin(inclination) * std::sin(azimuth);
@@ -247,9 +246,7 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
 }
 
 
-//glm::vec3 shipDirection = glm::vec3(1.0f, 1.0f, 1.0f);
-//glm::vec3 shipDirection = glm::vec3(1.0f, 0.0f, 0.0f);
-//   x=0  => boxNode.x = 0
+//  x=0  => boxNode.x = 0
 //  z box dim: 90/2 -80 = -35  -> -125,
 //const glm::vec3 boxOffset(0, -10, -80);
 const glm::vec3 boxOffset = glm::vec3(0, 0, 0);
@@ -261,12 +258,10 @@ void Ship::barrierSafetyNet() {
 
     float mf = this->maxForce;
 
-    // TODO fix so that it wont go halfway outside the object
     // -90 -> 90
     if (x > boxDimensions.x / 2 + boxOffset.x) this->acceleration.x = -mf;
     if (x < -boxDimensions.x / 2 + boxOffset.x) this->acceleration.x = mf;
 
-    //
     if (y > boxDimensions.y / 2 + boxOffset.y) this->acceleration.y = -mf;
     if (y < -boxDimensions.y / 2 + boxOffset.y) this->acceleration.y = mf;
 
@@ -276,8 +271,7 @@ void Ship::barrierSafetyNet() {
 }
 
 void Ship::generateLaser() {
-    Laser* l = new Laser(this->position, glm::normalize(this->velocity));
-    this->lasers.push_back(l);
+    this->lasers.push_back(new Laser(this->position, glm::normalize(this->velocity)));
 }
 
 glm::vec3 limitVector(const glm::vec3 &vec, float maxLength) {

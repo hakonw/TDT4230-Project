@@ -21,7 +21,7 @@ void main()
     textureCoordinates_out = textureCoordinates_in;
 
     vec4 pos4 = vec4(position, 1.0f);
-    // These calculations are only needed when doing 3d geo
+
     gl_Position = MVP * pos4;
 
     vec3 T = normalize(mat3(M) * tangents_in);

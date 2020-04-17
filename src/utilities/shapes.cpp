@@ -2,8 +2,7 @@
 #include "shapes.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
-
-#define M_PI 3.14159265359f
+#include <cmath>
 
 /* 3 (Top vertex)
  * |\__
