@@ -59,8 +59,8 @@ public:
     // Bounding box fields
     bool hasBoundingBox = false;
     glm::vec3 boundingBoxDimension;
-    BoundingBox getBoundingBox() { return genBoundingBox(this->position, this->boundingBoxDimension, this->scale); }
-    std::vector<SceneNode *> collisionObjects;
+    virtual BoundingBox getBoundingBox() { return genBoundingBox(this->position, this->boundingBoxDimension, this->scale); }
+    std::vector<SceneNode *> collisionObjects; // This list should be static + one dynamic per obj
 
     // The node's position and rotation relative to its parent
     glm::vec3 position;

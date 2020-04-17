@@ -18,7 +18,7 @@ private:
     float maxVelocity = 80.0f;
     float perceptionRadius = 30.0f;
     float perceptionCollisionRadius = 45.0f;
-    float maxForce = 60.0f;
+    float maxForce = 80.0f;
 
     float weightSeparation = 1.4f;
     float weightAlignment = 1.0f;

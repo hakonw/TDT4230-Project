@@ -63,6 +63,8 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         // TODO add weighted force to treat forces based on distance (if needed)
         Ray r = genRay(this->position, this->velocity);
         for (SceneNode *n : collisionObjects) {
+            if (!n->hasBoundingBox) continue;
+
             const RayIntersection &intersection = rayBoxIntersect(r, n->getBoundingBox());
             if (intersection.intersect && intersection.distance < perceptionCollisionRadius) {
                 glm::vec3 antiCollisionForce = generateAntiCollisionForce(collisionObjects);

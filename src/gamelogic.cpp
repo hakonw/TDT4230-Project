@@ -122,18 +122,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     sunNode->boundingBoxDimension = glm::vec3(1.0f * 2.0f + 0.1f); // Sphere radius, not sunScaleRadius + a bit extra
     sunNode->hasBoundingBox = true;
 
-    // Init and configure bots node
-    botsTeamA = new SceneNode(SceneNode::GROUP);
-    rootNode->addChild(botsTeamA);
-
-    for (int i=0; i<DEFAULT_ALLOWED_BOTS; i++) {
-        Ship* ship = new Ship();
-        bots.push_back(ship);
-        botsTeamA->addChild(ship); // Add it to be rendered
-        ship->collisionObjects.push_back(sunNode);
-    }
-    bots.at(0)->generateLaser(); // Lazy for for race condition (Note implement better cache structre) or pre-init
-
     // Lights
     sunLightNode = new SceneNode();
     padLightNode = new SceneNode();
@@ -177,6 +165,8 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->vertexArrayObjectID = boxVAO;
     boxNode->VAOIndexCount = box.indices.size();
     boxNode->nodeType = SceneNode::GEOMETRY;
+    boxNode->boundingBoxDimension = boxDimensions;
+    boxNode->hasBoundingBox = true;
 
     PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
     //PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
@@ -188,6 +178,19 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->textureID = brickTextureID;
     //boxNode->normalMapTextureID = brickNormalTextureID;
     //boxNode->roughnessMapID = brickRoughMapID;
+
+    // Init and configure bots node
+    botsTeamA = new SceneNode(SceneNode::GROUP);
+    rootNode->addChild(botsTeamA);
+
+    for (int i=0; i<DEFAULT_ALLOWED_BOTS; i++) {
+        Ship* ship = new Ship();
+        bots.push_back(ship);
+        botsTeamA->addChild(ship); // Add it to be rendered
+        ship->collisionObjects.push_back(sunNode);
+        ship->collisionObjects.push_back(boxNode);
+    }
+    bots.at(0)->generateLaser(); // Lazy for for race condition (Note implement better cache structre) or pre-init
 
     //GLfloat lineWidthRange[2];
     //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
