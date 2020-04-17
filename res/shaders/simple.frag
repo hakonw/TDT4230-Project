@@ -8,8 +8,8 @@ in layout(location = 4) mat3 tbn;
 
 // Uniforms
 uniform layout(location = 10) vec3 cameraPos;
-uniform layout(location = 11) vec3 ballPos;
-float ballRadius = 3.0f;
+uniform layout(location = 11) vec3 shadowNodePos = vec3(50.0f); // Out of signt of origo
+float shadowNodeRadius = 3.0f;
 
 // Uniform locations messed up from refactorings, expocit uniform required!
 uniform layout(location = 7) int useTexture;
@@ -104,7 +104,7 @@ void main()
             vec3 lightVec = pointLights[i].position - fragPos;
             vec3 lightDir = normalize(lightVec);
 
-            vec3 fragBallVec = ballPos - fragPos;
+            vec3 fragBallVec = shadowNodePos - fragPos;
             vec3 rejection = reject(fragBallVec, lightVec);
 
             // Default behaviour: calculate light
@@ -112,14 +112,13 @@ void main()
 
             // == -> lightratio = 1, reject < ballRadius -> shadow, reject > ball -> full light
             // Formula: 1-x^2, for x in range 0-1
-            float rejectionLeftover = length(rejection) - ballRadius; // is negative when you are "inside" the ball
+            float rejectionLeftover = length(rejection) - shadowNodeRadius; // is negative when you are "inside" the ball
 
             rejectionLeftover = min(rejectionLeftover, 0.0f); // used formula is symmetric
             lightRatio = min(max(1.0f-(rejectionLeftover*rejectionLeftover), 0.0f), 1.0f); // 1 - x^2,  cap at [0, 1]
             rejectionLeftover = max(rejectionLeftover, 1.0f);
             if (length(lightVec) < length(fragBallVec)) lightRatio = 1.0f; // special case 1
             if (dot(lightVec, fragBallVec) < 0) lightRatio = 1.0f; // special case 2
-            lightRatio = 1.0f; // TODO force disable of shadow (atm)
 
             result += calcPointLight(pointLights[i], norm, fragPos, viewDir, lightDir, lightRatio);
         }

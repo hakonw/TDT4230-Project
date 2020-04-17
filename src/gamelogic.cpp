@@ -20,12 +20,14 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
 #include <utilities/buttonHandler.h>
+#include <objects/box.h>
 
 Gloom::Camera camera;
 
 SceneNode* rootNode;
 SceneNode* boxNode;
 SceneNode* sunNode;
+SceneNode* asteroidNode;
 
 SceneNode* sunLightNode;
 
@@ -107,7 +109,18 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     sunNode->ignoreLight = 1;
     sunNode->boundingBoxDimension = glm::vec3(1.0f * 2.0f + 0.1f); // Sphere radius, not sunScaleRadius + a bit extra
     sunNode->hasBoundingBox = true;
-    sunNode->setStaticMat(); // Speed up matrix calculation as the object is not moved
+
+    asteroidNode = new SceneNode();
+    sunNode->addChild(asteroidNode);
+    asteroidNode->vertexArrayObjectID = (int) sphereVAO;
+    asteroidNode->VAOIndexCount = sphere.indices.size();
+    asteroidNode->material.baseColor = glm::vec3(0.641f);
+    asteroidNode->position = glm::vec3(0.0f);
+    asteroidNode->referencePoint = glm::vec3(-30.0f, 0.0f, 50.0f) * 1.0f/sunNode->scale;
+    asteroidNode->scale = glm::vec3(4.0f) * 1.0f/sunNode->scale; // Counteract the scaling (due to sphere mechanism)
+    asteroidNode->rotation = {0, 0, 0 };
+    asteroidNode->boundingBoxDimension = glm::vec3(1.0f * 2.0f + 1.0f);
+    asteroidNode->hasBoundingBox = true;
 
     // Lights
     sunLightNode = new SceneNode();
@@ -125,15 +138,10 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     sunNode->addChild(sunLightNode);
 
     // Configuration of box node
-    unsigned int boxVAO  = generateBuffer(box);
-    boxNode  = new SceneNode();
+    boxNode = new Box(boxDimensions, true);
     rootNode->addChild(boxNode);
-    boxNode->vertexArrayObjectID = (int)boxVAO;
-    boxNode->VAOIndexCount = box.indices.size();
-    boxNode->nodeType = SceneNode::GEOMETRY;
-    boxNode->boundingBoxDimension = boxDimensions;
-    boxNode->hasBoundingBox = true;
-    boxNode->setStaticMat();
+    boxNode->position = glm::vec3(0.0f);
+    boxNode->setStaticMat(); // Speed up matrix calculation as the object is not moved
 
     PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
     //PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
@@ -158,7 +166,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
         ship->collisionObjects.push_back(sunNode);
         ship->collisionObjects.push_back(boxNode);
     }
-    bots.at(0)->generateLaser(); // Lazy for for race condition (Note implement better cache structre) or pre-init
+    bots.at(0)->generateLaser(); // Lazy fix for race condition (Note implement better cache structre) or pre-init
 
     //GLfloat lineWidthRange[2];
     //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);
@@ -257,6 +265,12 @@ void updateFrame(GLFWwindow* window) {
 
     // Gamelogic
     if (!isPaused) {
+
+        // Sun rotating
+        sunNode->rotation.y = std::fmod(sunNode->rotation.y - timeDelta/3.0f, 360.0f);
+        asteroidNode->rotation.y += timeDelta/2.0f;
+
+        // Update all bots
         //bots.at(0).printShip();
         std::vector<std::future<void>> futures;
         auto updS = [](Ship* &ship, double &timeDelta, std::vector<Ship *> &bots) {return ship->updateShip(timeDelta, bots);};
@@ -282,6 +296,10 @@ void updateFrame(GLFWwindow* window) {
 
     // update uniforms that doesnt change that often (once per draw)
     glUniform3fv(10, 1, glm::value_ptr(camera.getCameraPosition()));
+
+    glm::vec4 asteroidNodePos = asteroidNode->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
+    glUniform3fv(11, 1, glm::value_ptr(asteroidNodePos));
+
     updateNodeTransformations(rootNode, VP, glm::mat4(1.0f));
 }
 
@@ -309,13 +327,6 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
     // To fix normals inside the shader
     // https://stackoverflow.com/questions/10879864/what-extractly-mat3a-mat4-matrix-statement-in-glsl-do
     node->currentNormalMatrix = glm::mat3(glm::transpose(glm::inverse(node->currentModelTransformationMatrix)));
-
-    // push the sun node position to a uniform variable
-    // TODO remove if un-needed
-    if (node == sunNode) {
-        glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
-        glUniform3fv(11, 1, glm::value_ptr(pos));
-    }
 
     switch(node->nodeType) {
         case SceneNode::POINT_LIGHT:
