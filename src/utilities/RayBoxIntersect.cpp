@@ -15,6 +15,14 @@ Ray genRay(glm::vec3 pos, glm::vec3 dir) {
 BoundingBox genBoundingBox(glm::vec3 position, glm::vec3 dimension, glm::vec3 scale) {
     glm::vec3 v1 = position - (dimension*scale/2.0f);
     glm::vec3 v2 = position + (dimension*scale/2.0f);
+
+    return BoundingBox {
+            v1,
+            v2
+    };
+    /*
+     // This is more correct
+     // But as orientiation isnt important, spare a few cycles, even tho it should be branchless and fast
     glm::vec3 vmin;
     glm::vec3 vmax;
 
@@ -30,6 +38,7 @@ BoundingBox genBoundingBox(glm::vec3 position, glm::vec3 dimension, glm::vec3 sc
         vmin,
         vmax
     };
+     */
 }
 
 RayIntersection rayBoxIntersect(Ray ray, BoundingBox boundingBox) {

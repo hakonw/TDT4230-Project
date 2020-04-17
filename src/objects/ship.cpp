@@ -59,16 +59,19 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         this->acceleration += alignmentForce * this->weightAlignment;
         this->acceleration += cohesionForce * this->weightCohesion;
 
+        // Anti collision force to avoid objects
+        // TODO add weighted force to treat forces based on distance (if needed)
         Ray r = genRay(this->position, this->velocity);
         for (SceneNode *n : collisionObjects) {
             const RayIntersection &intersection = rayBoxIntersect(r, n->getBoundingBox());
-            if (intersection.intersect && intersection.distance < perceptionRadius*2) {
-                this->antiCollisionForce(collisionObjects);
+            if (intersection.intersect && intersection.distance < perceptionCollisionRadius) {
+                glm::vec3 antiCollisionForce = generateAntiCollisionForce(collisionObjects);
+                this->acceleration += antiCollisionForce * this->weightAntiCollision;
                 this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
-                this->generateLaser();
             }
         }
 
+        // Laser shooting mechanism
         this->laserRefraction -= (float) deltaTime;
         if (laserRefraction <= 0) {
             r = genRay(this->position, this->velocity);
@@ -123,11 +126,12 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
 const int spherePoints = 100;
 const float goldenRatio = (1.0f + std::pow(5.0f, 0.5f))/2.0f;
 const float sircleFactor = 0.5f;
-glm::vec3 Ship::antiCollisionForce(const std::vector<SceneNode*> &collisionObjects) {
+glm::vec3 Ship::generateAntiCollisionForce(const std::vector<SceneNode*> &collisionObjects) {
     // Assumes collision is "imminent"
     // Calculate possible escape-paths
     // https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/44164075#44164075
 
+    // To re-oriante the rays to be in the correct space
     glm::mat3 rotationMatrix = glm::mat3(
             glm::rotate(this->rotation.y, glm::vec3(0,1,0))
               * glm::rotate(this->rotation.x, glm::vec3(1,0,0))
@@ -146,20 +150,19 @@ glm::vec3 Ship::antiCollisionForce(const std::vector<SceneNode*> &collisionObjec
 
         glm::vec3 dir = glm::vec3(x, y, z);
 
-
-        glm::vec3 dirWithLaser = rotationMatrix*dir;
+        glm::vec3 dirWithFront = rotationMatrix*dir;
 
         for (SceneNode *node : collisionObjects) {
             assert(node != this);
-            Ray r = genRay(this->position, dirWithLaser);
+            Ray r = genRay(this->position, dirWithFront);
             const RayIntersection &intersection = rayBoxIntersect(r, node->getBoundingBox());
-            if (intersection.intersect || true) {
-                Laser* l = new Laser(this->position, dirWithLaser);
-                this->lasers.push_back(l);
+            if (not (intersection.intersect && intersection.distance < perceptionCollisionRadius)) {
+                // There is a 'safe' way to avoid the collision
+                return getForceFromVec(dirWithFront);
             }
         }
-
     }
+    return getForceFromVec(this->velocity * -1.0f);
 }
 
 
@@ -220,7 +223,7 @@ glm::vec3 Ship::getCohesionForce(const std::vector<Ship*> &closeShips) { // TODO
 /// @param vec vector in the desired location
 /// @param vecDiff to subtract the currents ship velocity to get the desired force, used by separation-force
 /// @return steering force
-glm::vec3 Ship::getForceFromVec(const glm::vec3 &vec, bool vecDiff) {
+glm::vec3 Ship::getForceFromVec(const glm::vec3 &vec, bool vecDiff) { // vecDiff is by default true
     if (glm::length(vec) < 0.2f) { // Ignore super tiny vectors and avoid div by 0 assumes allowed maxForce > val
         return vec;
     }

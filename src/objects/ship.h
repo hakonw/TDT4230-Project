@@ -17,17 +17,19 @@ private:
     float minVelocity = 50.0f;
     float maxVelocity = 80.0f;
     float perceptionRadius = 30.0f;
+    float perceptionCollisionRadius = 45.0f;
     float maxForce = 60.0f;
 
     float weightSeparation = 1.4f;
     float weightAlignment = 1.0f;
     float weightCohesion = 0.7f;
+    float weightAntiCollision = 3.0f;
 
     std::vector<Ship*> getShipsInRadius(std::vector<Ship*> &ships);
     glm::vec3 getSeparationForce(const std::vector<Ship*> &closeShips);
     glm::vec3 getAlignmentForce(const std::vector<Ship*> &closeShips);
     glm::vec3 getCohesionForce(const std::vector<Ship*> &closeShips);
-    glm::vec3 antiCollisionForce(const std::vector<SceneNode*> &collisionObjects);
+    glm::vec3 generateAntiCollisionForce(const std::vector<SceneNode*> &collisionObjects);
     glm::vec3 getForceFromVec(const glm::vec3 &vec, bool vecDiff=true);
     void barrierSafetyNet();
 

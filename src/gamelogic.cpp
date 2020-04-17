@@ -114,12 +114,12 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     rootNode->addChild(sunNode);
     sunNode->vertexArrayObjectID = sphereVAO;
     sunNode->VAOIndexCount = sphere.indices.size();
-    sunNode->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f); // Yellow
+    sunNode->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
     sunNode->position = sunPosition;
     sunNode->scale = glm::vec3(sunRadius);
     sunNode->rotation = {0, 0, 0 };
     sunNode->ignoreLight = 1;
-    sunNode->boundingBoxDimension = glm::vec3(1.0f);
+    sunNode->boundingBoxDimension = glm::vec3(1.0f * 2.0f + 0.1f); // Sphere radius, not sunScaleRadius + a bit extra
     sunNode->hasBoundingBox = true;
 
     // Init and configure bots node
@@ -376,7 +376,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
 
     if (node->getIndependentChildrenSize() > 0) {
         for (SceneNode* child : node->getIndependentChildren()) {
-            if (useMultiThread && false) { //temporarly disabled as it creates a weird race condition
+            if (useMultiThread && false) { //disabled as it overloads the thread-framework OR creates a weird race condition TODO
                 futures.push_back(pool.enqueue(updateNodeTransformations, child, VP, transformationThusFar));
             } else {
                 updateNodeTransformations(child, VP, transformationThusFar);
