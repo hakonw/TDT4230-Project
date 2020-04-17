@@ -27,6 +27,7 @@ private:
     glm::vec3 getSeparationForce(const std::vector<Ship*> &closeShips);
     glm::vec3 getAlignmentForce(const std::vector<Ship*> &closeShips);
     glm::vec3 getCohesionForce(const std::vector<Ship*> &closeShips);
+    glm::vec3 antiCollisionForce(const std::vector<SceneNode*> &collisionObjects);
     glm::vec3 getForceFromVec(const glm::vec3 &vec, bool vecDiff=true);
     void barrierSafetyNet();
 

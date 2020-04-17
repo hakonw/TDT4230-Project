@@ -34,8 +34,10 @@ public:
         this->VAOIndexCount = Laser::textureIndicesCount;
         this->nodeType = SceneNode::LINE;
 
-        this->position = pos;
         assert(glm::length(dir) > 0.1f);
+        assert(pos != dir); // Burnt my self too many times on this, and wondering why it aint working
+
+        this->position = pos;
         this->direction = glm::normalize(dir);
         this->rotation = calcEulerAngles(this->direction);
         this->scale = glm::vec3(this->length);

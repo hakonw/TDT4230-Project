@@ -5,6 +5,7 @@
 #include <glm/gtc/random.hpp>
 #include <glm/vec3.hpp>
 #include "laser.h"
+#include <cmath>
 
 // Sometimes i get mad at cpp
 // Static variables
@@ -60,7 +61,9 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
 
         Ray r = genRay(this->position, this->velocity);
         for (SceneNode *n : collisionObjects) {
-            if (rayBoxIntersect(r, n->getBoundingBox()).intersect) {
+            const RayIntersection &intersection = rayBoxIntersect(r, n->getBoundingBox());
+            if (intersection.intersect && intersection.distance < perceptionRadius*2) {
+                this->antiCollisionForce(collisionObjects);
                 this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
                 this->generateLaser();
             }
@@ -70,6 +73,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         if (laserRefraction <= 0) {
             r = genRay(this->position, this->velocity);
             for (SceneNode *n : ships) {
+                break;
                 if (this != n) {
                     RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
                     if (intersection.intersect && intersection.distance < Ship::laserViewDistance) {
@@ -98,11 +102,11 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         this->position += (float) deltaTime * this->velocity; // x = x0 + v*t
 
         // Set rotation
-        // TODO find a way to calculate roll
+        // TODO select a component to calculate roll
         this->rotation = calcEulerAngles(direction);
     }
 
-    // Update lasers
+    // Update lasers as they are sub-objects (todo move to graph tree directly?)
     for (int i = (int)lasers.size() - 1; i >= 0; i--) {
         Laser* l = lasers.at(i);
         l->update(deltaTime);
@@ -115,6 +119,49 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
     }
     //printShip();
 }
+
+const int spherePoints = 100;
+const float goldenRatio = (1.0f + std::pow(5.0f, 0.5f))/2.0f;
+const float sircleFactor = 0.5f;
+glm::vec3 Ship::antiCollisionForce(const std::vector<SceneNode*> &collisionObjects) {
+    // Assumes collision is "imminent"
+    // Calculate possible escape-paths
+    // https://stackoverflow.com/questions/9600801/evenly-distributing-n-points-on-a-sphere/44164075#44164075
+
+    glm::mat3 rotationMatrix = glm::mat3(
+            glm::rotate(this->rotation.y, glm::vec3(0,1,0))
+              * glm::rotate(this->rotation.x, glm::vec3(1,0,0))
+              * glm::rotate(this->rotation.z, glm::vec3(0,0,1))
+              );
+
+    // Calculate it before, waisted resources vs readable code, or lazy evaluation instead?
+    for (int i=0; i<spherePoints; i++) {
+        float t = (float)i/((float)(spherePoints-1))*sircleFactor; // 0 -> 1*fac
+        float inclination = std::acos(1.0f - 2.0f * t);
+        float azimuth = 2.0f * M_PI * goldenRatio * i;
+
+        float x = std::sin(inclination) * std::cos(azimuth);
+        float y = std::sin(inclination) * std::sin(azimuth);
+        float z = std::cos(inclination);
+
+        glm::vec3 dir = glm::vec3(x, y, z);
+
+
+        glm::vec3 dirWithLaser = rotationMatrix*dir;
+
+        for (SceneNode *node : collisionObjects) {
+            assert(node != this);
+            Ray r = genRay(this->position, dirWithLaser);
+            const RayIntersection &intersection = rayBoxIntersect(r, node->getBoundingBox());
+            if (intersection.intersect || true) {
+                Laser* l = new Laser(this->position, dirWithLaser);
+                this->lasers.push_back(l);
+            }
+        }
+
+    }
+}
+
 
 /// Calculate the separation force with a (linear) inverse proportional factor
 /// @param closeShips all ships within the perceptionRadius
@@ -202,7 +249,6 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
 //const glm::vec3 boxOffset(0, -10, -80);
 const glm::vec3 boxOffset = glm::vec3(0, 0, 0);
 const glm::vec3 boxDimensions = glm::vec3(90, 90, 90)*2.0f;
-
 void Ship::barrierSafetyNet() {
     float x = this->position.x;
     float y = this->position.y;
@@ -231,7 +277,7 @@ void Ship::generateLaser() {
 
 glm::vec3 limitVector(const glm::vec3 &vec, float maxLength) {
     float length = glm::length(vec);
-    if (length == 0.0f) return vec; // Avoid division by 0
+    if (length < 0.002f) return vec; // Avoid division by 0
     glm::vec3 direction = vec/length;
     length = std::min(length, maxLength);
     return length * direction;
