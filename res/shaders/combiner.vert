@@ -9,5 +9,5 @@ out layout(location = 0) vec2 textureCoordinates_out;
 void main()
 {
     textureCoordinates_out = textureCoordinates_in;
-    gl_Position = vec4(position, 1.0f);
+    gl_Position = vec4(position, 1.0f);;
 }

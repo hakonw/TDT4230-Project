@@ -55,6 +55,7 @@ double sunRadius = 15.0f;
 Gloom::Shader* defaultShader;
 Gloom::Shader* skyBoxShader;
 Gloom::Shader* blurShader;
+Gloom::Shader* combineShader;
 unsigned int skyBoxTextureID;
 
 unsigned int hdrFBO;
@@ -105,7 +106,11 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
     blurShader = new Gloom::Shader();
     blurShader->makeBasicShader("../res/shaders/blur.vert", "../res/shaders/blur.frag");
-    printf("Blur shader status: %i\n|", blurShader->isValid());
+    printf("Blur shader status: %i\n", blurShader->isValid());
+
+    combineShader = new Gloom::Shader();
+    combineShader->makeBasicShader("../res/shaders/combiner.vert", "../res/shaders/combiner.frag");
+    printf("Combine shader status: %i\n", combineShader->isValid());
 
     // Configuration of skybox
     PNGImage skyBoxTexture = loadPNGFile("../res/textures/space1.png");
@@ -525,38 +530,39 @@ void renderFrame(GLFWwindow* window) {
     // Draw skybox
     glDepthMask(GL_FALSE);
     skyBoxShader->activate();
-    renderSkybox();
+    //renderSkybox();
     glDepthMask(GL_TRUE);
 
-    // Draw all other things
+    // Draw all other things into the multi-buffer
     defaultShader->activate();
     renderNode(rootNode);
 
     // Reset to default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-/*    // 2. blur bright fragments with two-pass Gaussian Blur
-    // --------------------------------------------------
+    // blur bright fragments with two-pass Gaussian Blur
     bool horizontal = true, first_iteration = true;
-    unsigned int amount = 1;
+    unsigned int amount = 10;
     blurShader->activate();
-    for (unsigned int i = 0; i < amount; i++)
-    {
+    for (unsigned int i = 0; i < amount; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+        glUniform1i(1, horizontal ? 1 : 0);
         glBindTexture(GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingpongColorbuffers[!horizontal]);  // bind texture of other framebuffer (or scene if first iteration)
-        renderSkybox();
+        renderQ();
         horizontal = !horizontal;
-        if (first_iteration)
-            first_iteration = false;
+        first_iteration = false;
+        //if (first_iteration) first_iteration = false;
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Draw combined frame
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    combineShader->activate();
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
-    blurShader->activate();
+    //glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[!horizontal]);
     renderQ();
 
-
-    defaultShader->activate();
+    defaultShader->activate(); // Reset to default shader when updating uniforms
 }
