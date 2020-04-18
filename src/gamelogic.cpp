@@ -232,7 +232,10 @@ void handleKeyboardInputGameLogic(GLFWwindow* window) {
     }
 
     // Disable drawing of box
-    toggleBoolOnPress(boxNode->enabled, GLFW_KEY_B);
+    if (getAndSetKeySinglePress(GLFW_KEY_B)) {
+        boxNode->enabled = not boxNode->enabled;
+        Ship::disableSafetyNet = not boxNode->enabled;
+    }
 
     if (keyInUse(GLFW_KEY_F8)) {
         Ship* ship = new Ship();

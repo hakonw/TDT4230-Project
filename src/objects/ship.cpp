@@ -13,6 +13,7 @@ unsigned int Ship::textureVaoId;
 unsigned int Ship::textureIndicesCount;
 bool Ship::textureCached = false;
 std::vector<SceneNode*> Ship::attractors;
+bool Ship::disableSafetyNet = false;
 
 void Ship::generateShipNode() {
     if (!textureCached) {
@@ -69,7 +70,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         // TODO add weighted force to treat forces based on distance (if needed)
         Ray r = genRay(this->position, this->velocity);
         for (SceneNode *n : SceneNode::collisionObjects) {
-            if (!n->hasBoundingBox) continue;
+            if (!n->hasBoundingBox || !n->enabled) continue;
             if (n->hasTinyBoundingBox && glm::length(n->worldPos - this->worldPos) + this->tinyBoundingBoxSize * 1.2f < this->perceptionRadius) continue;
 
             RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
@@ -85,7 +86,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
 
         // Check if collision with box, and move back inside, as not to just go away infinitely
         // Overwrites all other behaviors
-        this->barrierSafetyNet();
+        if (! Ship::disableSafetyNet) { this->barrierSafetyNet(); }
 
         // Calculate new velocity
         this->velocity = this->velocity + this->acceleration * (float) deltaTime; // v = v0 + at

@@ -57,6 +57,7 @@ public:
     }
 
     static std::vector<SceneNode*> attractors;
+    static bool disableSafetyNet;
 
     void printShip();
 
