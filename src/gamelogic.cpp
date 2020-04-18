@@ -28,16 +28,15 @@ SceneNode* rootNode;
 SceneNode* boxNode;
 SceneNode* sunNode;
 SceneNode* asteroidNode;
-
 SceneNode* sunLightNode;
-
 SceneNode* botsTeam;
 
 #define DEFAULT_ALLOWED_BOTS 300
 std::vector <Ship*> bots;
 
-glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 350.f);
+std::vector<SceneNode *> SceneNode::collisionObjects;
 
+glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 450.f);
 
 // These are heap allocated, because they should not be initialised at the start of the program
 Gloom::Shader* defaultShader;
@@ -69,6 +68,8 @@ void placeLight3fvVal(int id, const std::string& field, glm::vec3 &v3) {
 }
 
 void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
+
+
     options = gameOptions;
 
     if (captureMouse) {
@@ -90,11 +91,11 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 
     // Create meshes
     Mesh box = cube(boxDimensions, glm::vec2(90), true, true);
-    Mesh sphere = generateSphere(1.0f, 10, 10);
+    Mesh sphere = generateSphere(1.0f, 15, 15);
 
 
     // Construct scene
-    rootNode = new SceneNode();
+    rootNode = new SceneNode(SceneNode::GROUP);
 
     // Init and configure sun node
     unsigned int sphereVAO = generateBuffer(sphere);
@@ -111,21 +112,23 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     sunNode->hasBoundingBox = true;
     sunNode->hasTinyBoundingBox = true;
     sunNode->tinyBoundingBoxSize = (float)sunRadius; // Approximate AABB with radius
+    SceneNode::collisionObjects.push_back(sunNode);
+
 
     asteroidNode = new SceneNode();
     sunNode->addChild(asteroidNode);
     asteroidNode->vertexArrayObjectID = (int) sphereVAO;
     asteroidNode->VAOIndexCount = sphere.indices.size();
     asteroidNode->material.baseColor = glm::vec3(0.641f);
-    asteroidNode->position = glm::vec3(0.0f);
-    asteroidNode->referencePoint = glm::vec3(-30.0f, 0.0f, 50.0f) * 1.0f/sunNode->scale;
+    asteroidNode->position = glm::vec3(-30.0f, 0.0f, 50.0f) * 1.0f/sunNode->scale;
     asteroidNode->scale = glm::vec3(4.0f) * 1.0f/sunNode->scale; // Counteract the scaling (due to sphere mechanism)
     asteroidNode->rotation = {0, 0, 0 };
     asteroidNode->boundingBoxDimension = glm::vec3(1.0f * 2.0f + 1.0f);
     asteroidNode->hasBoundingBox = true;
     asteroidNode->hasTinyBoundingBox = true;
     asteroidNode->tinyBoundingBoxSize = 4.0f; // Approximate AABB with radius
-
+    SceneNode::collisionObjects.push_back(asteroidNode);
+    Ship::attractors.push_back(asteroidNode);
 
     // Lights
     sunLightNode = new SceneNode();
@@ -149,15 +152,17 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     boxNode->hasBoundingBox = true;
     boxNode->boundingBoxDimension = boxDimensions;
     boxNode->setStaticMat(); // Speed up matrix calculation as the object is not moved
+    SceneNode::collisionObjects.push_back(boxNode);
 
-    PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
+
+    // Textures, normal and roughness maps can be loaded like this
+    //PNGImage brickTextureMap = loadPNGFile("../res/textures/Brick03_col.png");
     //PNGImage brickNormalMap = loadPNGFile("../res/textures/Brick03_nrm.png");
     //PNGImage brickRoughMap = loadPNGFile("../res/textures/Brick03_rgh.png");
-    unsigned int brickTextureID = getTextureID(&brickTextureMap);
+    //unsigned int brickTextureID = getTextureID(&brickTextureMap);
     //unsigned int brickNormalTextureID = getTextureID(&brickNormalMap);
     //unsigned int brickRoughMapID = getTextureID(&brickRoughMap);
-
-    boxNode->textureID = brickTextureID;
+    //boxNode->textureID = brickTextureID;
     //boxNode->normalMapTextureID = brickNormalTextureID;
     //boxNode->roughnessMapID = brickRoughMapID;
 
@@ -170,9 +175,6 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
         Ship* ship = new Ship();
         bots.push_back(ship);
         botsTeam->addChild(ship); // Add it to be rendered
-        ship->collisionObjects.push_back(sunNode);
-        ship->collisionObjects.push_back(boxNode);
-        ship->collisionObjects.push_back(asteroidNode);
     }
     bots.at(0)->generateLaser(); // Lazy fix for race condition (Note implement better cache structre) or pre-init
 
@@ -192,7 +194,9 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
 }
 
 std::vector<int> mouseKeys = {GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_2};
-std::vector<int> keys = {GLFW_KEY_K, GLFW_KEY_M, GLFW_KEY_F1, GLFW_KEY_F4};
+std::vector<int> keys = {GLFW_KEY_K, GLFW_KEY_M, GLFW_KEY_B,
+                         GLFW_KEY_F1, GLFW_KEY_F3, GLFW_KEY_F4,
+                         GLFW_KEY_F7, GLFW_KEY_F8};
 void handleKeyboardInputGameLogic(GLFWwindow* window) {
     // Update all keys
     for (int key : keys) {
@@ -217,7 +221,7 @@ void handleKeyboardInputGameLogic(GLFWwindow* window) {
     // Toggle use of multithread
     toggleBoolOnPress(useMultiThread, GLFW_KEY_M);
 
-    // Toggle mouse lock (used for debugging)
+    // Toggle mouse lock (usefull for debugging)
     if (getAndSetKeySinglePress(GLFW_KEY_K)) {
         captureMouse = not captureMouse;
         if (captureMouse) {
@@ -225,6 +229,24 @@ void handleKeyboardInputGameLogic(GLFWwindow* window) {
         } else {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
+    }
+
+    // Disable drawing of box
+    toggleBoolOnPress(boxNode->enabled, GLFW_KEY_B);
+
+    if (keyInUse(GLFW_KEY_F8)) {
+        Ship* ship = new Ship();
+        bots.push_back(ship);
+        botsTeam->addChild(ship);
+    }
+
+    if (keyInUse(GLFW_KEY_F7)) {
+        int index = bots.size()-1;
+        assert(bots.at(index) == botsTeam->children.at(index));
+        Ship * ship = bots.at(index);
+        bots.erase(bots.begin() + index);
+        botsTeam->children.erase(botsTeam->children.begin() + index);
+        delete ship;
     }
 
     if (getAndSetKeySinglePress(GLFW_KEY_F1)) {
@@ -235,18 +257,29 @@ void handleKeyboardInputGameLogic(GLFWwindow* window) {
                "  Force shoot:   Mouse click 1\n"
                "  Gimbal lock:   G\n"
                "  Multi thread:  M\n"
+               "  Toggle box:    B\n"
                "  Help:          F1\n"
+               "  Camera pos:    F3\n"
                "  Show status:   F4\n"
                "  Disable mouse: K\n"
+               "  Add/Sub ships: F8/F7\n"
                );
+    }
+
+    if (getAndSetKeySinglePress(GLFW_KEY_F3)) {
+        printf("Camera\n"
+               "  possition: (%f, %f, %f)\n",
+               camera.getCameraPosition().x, camera.getCameraPosition().y, camera.getCameraPosition().z);
     }
 
     if (getAndSetKeySinglePress(GLFW_KEY_F4)) {
         printf("Status: \n"
                "  Pause:       %i\n"
                "  Multithread: %i\n"
-               "  Mouselock:   %i\n",
-               isPaused, useMultiThread, captureMouse);
+               "  Mouselock:   %i\n"
+               "  Box status:  %i\n"
+               "  Bots:        %i\n",
+               isPaused, useMultiThread, captureMouse, boxNode->enabled, (int)bots.size());
     }
 }
 
@@ -330,6 +363,9 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
     // Projection*View * Model
     node->currentModelTransformationMatrix = transformationThusFar * transformationMatrix; // M
     node->currentTransformationMatrix = VP * node->currentModelTransformationMatrix; // MVP
+
+    node->worldPos = glm::vec3(node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f));
+
 
     // Compute transpose of the inverse of the model matrix
     // To fix normals inside the shader

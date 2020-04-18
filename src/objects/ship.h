@@ -24,6 +24,7 @@ private:
     float weightAlignment = 1.0f;
     float weightCohesion = 0.7f;
     float weightAntiCollision = 5.0f;
+    float weightAttraction = 0.2f;
 
     std::vector<Ship*> getShipsInRadius(std::vector<Ship*> &ships);
     glm::vec3 getSeparationForce(const std::vector<Ship*> &closeShips);
@@ -32,6 +33,7 @@ private:
     glm::vec3 generateAntiCollisionForce(SceneNode* collisionObject);
     glm::vec3 getForceFromVec(const glm::vec3 &vec, bool vecDiff=true);
     void barrierSafetyNet();
+    void laserMechanism(double deltaTime, const std::vector<Ship *> &ships);
 
     std::vector<Laser*> lasers;
 
@@ -53,6 +55,8 @@ public:
     std::vector<SceneNode*> getIndependentChildren() override {
         return std::vector<SceneNode*>(lasers.begin(), lasers.end());
     }
+
+    static std::vector<SceneNode*> attractors;
 
     void printShip();
 

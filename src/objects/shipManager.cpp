@@ -104,6 +104,7 @@ void updateAmountBots(std::vector <Ship*> &bots, SceneNode* botsNode, float &cur
                 Ship *ship = new Ship();
                 bots.push_back(ship);
                 botsNode->addChild(ship); // Add it to be rendered
+                ship->position = bots.at(0)->position;
             }
             printf("adaptive bot amount: Increasing bots with %i to a total of %lu\n", deltaBots, bots.size());
 

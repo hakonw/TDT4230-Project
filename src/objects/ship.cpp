@@ -12,6 +12,7 @@ unsigned int Ship::total = 0;
 unsigned int Ship::textureVaoId;
 unsigned int Ship::textureIndicesCount;
 bool Ship::textureCached = false;
+std::vector<SceneNode*> Ship::attractors;
 
 void Ship::generateShipNode() {
     if (!textureCached) {
@@ -58,39 +59,29 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         this->acceleration += alignmentForce * this->weightAlignment;
         this->acceleration += cohesionForce * this->weightCohesion;
 
+        // Attaction force
+        for (SceneNode* n : Ship::attractors) {
+            glm::vec3 attractionForce = getForceFromVec(n->worldPos - this->worldPos);
+            this->acceleration += attractionForce * this->weightAttraction;
+        }
+
         // Anti collision force to avoid objects
         // TODO add weighted force to treat forces based on distance (if needed)
         Ray r = genRay(this->position, this->velocity);
-        for (SceneNode *n : collisionObjects) {
+        for (SceneNode *n : SceneNode::collisionObjects) {
             if (!n->hasBoundingBox) continue;
-            if (n->hasTinyBoundingBox && glm::length(n->position - this->position) + tinyBoundingBoxSize*1.2f < perceptionRadius) continue;
+            if (n->hasTinyBoundingBox && glm::length(n->worldPos - this->worldPos) + this->tinyBoundingBoxSize * 1.2f < this->perceptionRadius) continue;
 
             RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
-            if (intersection.intersect && intersection.distance < perceptionCollisionRadius) {
-                glm::vec3 antiCollisionForce = generateAntiCollisionForce(n);
+            if (intersection.intersect && intersection.distance < this->perceptionCollisionRadius) {
+                glm::vec3 antiCollisionForce = this->generateAntiCollisionForce(n);
                 this->acceleration += antiCollisionForce * this->weightAntiCollision;
                 this->material.baseColor = glm::vec3(1.0f, 1.0f, 1.0f);
             }
         }
 
         // Laser shooting mechanism
-        this->laserRefraction -= (float) deltaTime;
-        if (laserRefraction <= 0) {
-            r = genRay(this->position, this->velocity);
-            for (SceneNode *n : ships) {
-                if (this != n) {
-                    if (glm::length(n->position - this->position) < Ship::laserViewDistance) {
-                        RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
-                        if (intersection.intersect) {
-                            this->generateLaser();
-                            this->laserRefraction = Ship::minLaserRefraction;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
+        this->laserMechanism(deltaTime, ships);
 
         // Check if collision with box, and move back inside, as not to just go away infinitely
         // Overwrites all other behaviors
@@ -112,6 +103,7 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         this->rotation = calcEulerAngles(direction);
     }
 
+    // Must be done even if the node is disabled
     // Update lasers as they are sub-objects (todo move to graph tree directly?)
     for (int i = (int)lasers.size() - 1; i >= 0; i--) {
         Laser* l = lasers.at(i);
@@ -124,6 +116,25 @@ void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
         }
     }
     //printShip();
+}
+void Ship::laserMechanism(double deltaTime, const std::vector<Ship *> &ships) {
+    // Shooting laser mechanism
+    this->laserRefraction -= (float) deltaTime;
+    if (this->laserRefraction <= 0) {
+        Ray r = genRay(this->position, this->velocity);
+        for (SceneNode *n : ships) {
+            if (this != n) {
+                if (glm::length(n->position - this->position) < Ship::laserViewDistance) {
+                    RayIntersection intersection = rayBoxIntersect(r, n->getBoundingBox());
+                    if (intersection.intersect) {
+                        this->generateLaser();
+                        this->laserRefraction = Ship::minLaserRefraction;
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 
 const int spherePoints = 40;
@@ -251,7 +262,7 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
 //const glm::vec3 boxOffset(0, -10, -80);
 const glm::vec3 boxOffset = glm::vec3(0, 0, 0);
 //const glm::vec3 boxDimensions = glm::vec3(90, 90, 90)*2.0f;
-const glm::vec3 boxDimensions(260.0f, 260.0f, 260.0f);
+const glm::vec3 boxDimensions(249.0f, 249.0f, 249.0f);
 void Ship::barrierSafetyNet() {
     float x = this->position.x;
     float y = this->position.y;

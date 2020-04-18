@@ -60,7 +60,7 @@ public:
     bool hasBoundingBox = false;
     glm::vec3 boundingBoxDimension;
     virtual BoundingBox getBoundingBox() { return genBoundingBox(this->position, this->boundingBoxDimension, this->scale); }
-    std::vector<SceneNode *> collisionObjects; // This list should be static + one dynamic per obj
+    static std::vector<SceneNode *> collisionObjects; // List of all collision objects
     bool hasTinyBoundingBox = false;
     float tinyBoundingBoxSize = 10.0f;
 
@@ -68,6 +68,8 @@ public:
     glm::vec3 position;
     glm::vec3 rotation;
     glm::vec3 scale;
+
+    glm::vec3 worldPos;
 
     bool staticRefScaleRot = false;
     glm::mat4 refScaleRot;
