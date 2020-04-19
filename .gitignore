@@ -3,6 +3,7 @@
 
 .idea/
 cmake-build-debug/
+cmake-build-release/
 lib/glad/
 
 # Compiled Object files

@@ -22,6 +22,9 @@ git submodule update --init
 
 To run the project, use `cmake` followed by `make`.
 
+To maximise the performance of the application, use cmake with `-DCMAKE_BUILD_TYPE=Release`.
+
+
 For linux, package dependencies are available in `./lib/ubuntu_debian_install_dependencies.sh`.
 
 ## Controls
