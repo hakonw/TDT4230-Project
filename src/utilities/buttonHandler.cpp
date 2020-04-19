@@ -25,7 +25,7 @@ bool getAndSetKeySinglePress(int key){
 
 void toggleBoolOnPress(bool &b, int key) {
     if (getAndSetKeySinglePress(key)) {
-        b = not b;
+        b = !b;
         if (DEBUG) printf("Toggle key: %i to %i\n", key, b);
     }
 }

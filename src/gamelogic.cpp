@@ -21,6 +21,7 @@
 #include <glm/gtx/transform.hpp>
 #include <utilities/buttonHandler.h>
 #include <objects/box.h>
+#include <thread>
 
 Gloom::Camera camera;
 
@@ -78,15 +79,17 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     }
 
 
+    const std::string relativePath = "../"; // Depends on where you build it from,  default clion: ../,  default msvc: ../../../
+
     defaultShader = new Gloom::Shader();
-    defaultShader->makeBasicShader("../res/shaders/simple.vert", "../res/shaders/simple.frag");
+    defaultShader->makeBasicShader(relativePath + "res/shaders/simple.vert", relativePath + "res/shaders/simple.frag");
     defaultShader->activate();
 
     skyBoxShader = new Gloom::Shader();
-    skyBoxShader->makeBasicShader("../res/shaders/skybox.vert", "../res/shaders/skybox.frag");
+    skyBoxShader->makeBasicShader(relativePath + "res/shaders/skybox.vert", relativePath +"res/shaders/skybox.frag");
 
     // Configuration of skybox
-    PNGImage skyBoxTexture = loadPNGFile("../res/textures/space1.png");
+    PNGImage skyBoxTexture = loadPNGFile(relativePath + "res/textures/space1.png");
     skyBoxTextureID = getTextureID(&skyBoxTexture);
 
     // Create meshes
@@ -223,7 +226,7 @@ void handleKeyboardInputGameLogic(GLFWwindow* window) {
 
     // Toggle mouse lock (usefull for debugging)
     if (getAndSetKeySinglePress(GLFW_KEY_K)) {
-        captureMouse = not captureMouse;
+        captureMouse = !captureMouse;
         if (captureMouse) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         } else {
@@ -233,8 +236,8 @@ void handleKeyboardInputGameLogic(GLFWwindow* window) {
 
     // Disable drawing of box
     if (getAndSetKeySinglePress(GLFW_KEY_B)) {
-        boxNode->enabled = not boxNode->enabled;
-        Ship::disableSafetyNet = not boxNode->enabled;
+        boxNode->enabled = !boxNode->enabled;
+        Ship::disableSafetyNet = !boxNode->enabled;
     }
 
     if (keyInUse(GLFW_KEY_F8)) {
@@ -377,13 +380,7 @@ void updateNodeTransformations(SceneNode* node, glm::mat4 VP, glm::mat4 transfor
 
     switch(node->nodeType) {
         case SceneNode::POINT_LIGHT:
-            {
-                glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
-                glm::vec3 pos3 = glm::vec3(pos)/pos.w;  // Correct the length
-                std::string uniformName = fmt::format("pointLights[{}].position", node->lightSourceID);
-                GLint location = defaultShader->getUniformFromName(uniformName);
-                glUniform3fv(location, 1, glm::value_ptr(pos3));
-            }
+
             break;
         case SceneNode::GEOMETRY: break;
         case SceneNode::GEOMETRY_NORMAL_MAPPED: break;
@@ -469,7 +466,15 @@ void renderNode(SceneNode* node) {
                     glUniform1i(9, 0);
                 }
                 break;
-            case SceneNode::POINT_LIGHT: break;
+            case SceneNode::POINT_LIGHT:
+                {
+                    glm::vec4 pos = node->currentModelTransformationMatrix*glm::vec4(0.0f,0.0f,0.0f,1.0f);
+                    glm::vec3 pos3 = glm::vec3(pos)/pos.w;  // Correct the length
+                    std::string uniformName = fmt::format("pointLights[{}].position", node->lightSourceID);
+                    GLint location = defaultShader->getUniformFromName(uniformName);
+                    glUniform3fv(location, 1, glm::value_ptr(pos3));
+                }
+                break;
             case SceneNode::GROUP: break;
         }
     }

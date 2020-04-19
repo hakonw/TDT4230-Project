@@ -3,6 +3,7 @@
 #include <memory>
 #include "sceneGraph.hpp"
 #include "laser.h"
+#include <algorithm>
 
 class Ship : public SceneNode{
     //typedef std::shared_ptr<Laser> LaserPtr; // Laser smart pointer alias
