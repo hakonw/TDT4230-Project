@@ -28,8 +28,8 @@ float dither(vec2 uv) { return (rand(uv)*2.0-1.0) / 256.0; }
 
 const float ambientStrength = 0.15f;
 const float l_constant = 0.5; // l_a,  i hate the bright light close to the source, so this is tuned WAAY down
-const float l_linear = 0.0001; // l_b
-const float l_quadratic = 0.0001; // l_c
+const float l_linear = 0.00005; // l_b
+const float l_quadratic = 0.00005; // l_c
 
 struct PointLight {
     vec3 position;

@@ -106,7 +106,7 @@ void updateAmountBots(std::vector <Ship*> &bots, SceneNode* botsNode, float &cur
                 botsNode->addChild(ship); // Add it to be rendered
                 ship->position = bots.at(0)->position;
             }
-            printf("adaptive bot amount: Increasing bots with %i to a total of %lu\n", deltaBots, bots.size());
+            printf("adaptive bot amount: Increasing bots with %i to a total of %llu\n", deltaBots, bots.size());
 
         } else if (deltaBots < 0) { // Remove bots
             // Clean up old disabled bots, and then remove bots
@@ -132,7 +132,7 @@ void updateAmountBots(std::vector <Ship*> &bots, SceneNode* botsNode, float &cur
                     }
                 }
             }
-            printf("adaptive bot amount: Decreasing bots with %i (%i disabled, %i deleted) to a size of %lu active and a total %lu\n", deltaBots, disabled, deleted, bots.size()-disabled, bots.size());
+            printf("adaptive bot amount: Decreasing bots with %i (%i disabled, %i deleted) to a size of %llu active and a total %llu\n", deltaBots, disabled, deleted, bots.size()-disabled, bots.size());
         }
     }
 }

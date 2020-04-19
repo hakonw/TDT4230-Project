@@ -178,7 +178,8 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
         bots.push_back(ship);
         botsTeam->addChild(ship); // Add it to be rendered
     }
-    bots.at(0)->generateLaser(); // Lazy fix for race condition (Note implement better cache structre) or pre-init
+    bots.at(0)->generateLaser(); // Lazy fix for race condition (Note implement better cache structure) or pre-init
+    bots.at(0)->lasers.at(0)->enabled = false;
 
     //GLfloat lineWidthRange[2];
     //glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, lineWidthRange);

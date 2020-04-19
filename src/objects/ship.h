@@ -15,7 +15,7 @@ private:
     static unsigned int textureIndicesCount;
     static bool textureCached;
 
-    float minVelocity = 10.0f;
+    float minVelocity = 15.0f;
     float maxVelocity = 80.0f;
     float perceptionRadius = 30.0f;
     float perceptionCollisionRadius = 45.0f;
@@ -36,7 +36,6 @@ private:
     void barrierSafetyNet();
     void laserMechanism(double deltaTime, const std::vector<Ship *> &ships);
 
-    std::vector<Laser*> lasers;
 
     const float minLaserRefraction = 0.4f; // How often (min) can the ship shoot in seconds
     const float laserViewDistance = 100.0f;
@@ -47,6 +46,8 @@ private:
     bool canUseBuffer;
 
 public:
+    std::vector<Laser*> lasers;
+
     glm::vec3 acceleration = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 velocity = glm::vec3(1.0f, 1.0f, 1.0f);
 
