@@ -21,7 +21,6 @@
 #include <glm/gtx/transform.hpp>
 #include <utilities/buttonHandler.h>
 #include <objects/box.h>
-#include <thread>
 
 Gloom::Camera camera;
 
@@ -37,7 +36,7 @@ std::vector <Ship*> bots;
 
 std::vector<SceneNode *> SceneNode::collisionObjects;
 
-glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 450.f);
+glm::mat4 projection = glm::perspective(glm::radians(80.0f), float(windowWidth) / float(windowHeight), 0.1f, 600.f);
 
 // These are heap allocated, because they should not be initialised at the start of the program
 Gloom::Shader* defaultShader;

@@ -42,7 +42,7 @@ private:
     const float laserViewDistance = 100.0f;
     float laserRefraction = std::min(minLaserRefraction*5.0f, 5.0f); // Delay first laser
 
-    bool allowCpuLoadReduction = false; // Trades off performance vs correctness
+    bool allowCpuLoadReduction = true; // Trades off performance vs correctness
     std::vector<Ship*> prevCloseShips;
     bool canUseBuffer;
 
