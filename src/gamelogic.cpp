@@ -81,7 +81,7 @@ void initGame(GLFWwindow* window, CommandLineOptions gameOptions) {
     const std::string relativePath = "../"; // Depends on where you build it from,  default clion: ../,  default msvc: ../../../
 
     defaultShader = new Gloom::Shader();
-    defaultShader->makeBasicShader(relativePath + "res/shaders/simple.vert", relativePath + "res/shaders/simple.frag");
+    defaultShader->makeBasicShader(relativePath + "res/shaders/default.vert", relativePath + "res/shaders/default.frag");
     defaultShader->activate();
 
     skyBoxShader = new Gloom::Shader();
