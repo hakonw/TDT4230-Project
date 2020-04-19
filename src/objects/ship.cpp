@@ -38,6 +38,8 @@ void Ship::generateShipNode() {
     this->hasBoundingBox = true;
     //this->boundingBoxDimension = tetrahedronDim;
     this->boundingBoxDimension = glm::vec3(2,3,4)*2.0f;
+
+    this->canUseBuffer = id % 2 == 0; // Create randomness
 }
 
 void Ship::updateShip(double deltaTime, std::vector<Ship*> &ships) {
@@ -246,6 +248,11 @@ glm::vec3 Ship::getForceFromVec(const glm::vec3 &vec, bool vecDiff) { // vecDiff
 }
 
 std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
+    // Half sampling to cpu load (if turned on)
+    if (this->allowCpuLoadReduction && this->canUseBuffer) {
+        this->canUseBuffer = false;
+        return this->prevCloseShips;
+    }
     std::vector<Ship*> returnList;
     for (Ship* ship2 : ships) {
         if (this != ship2 && ship2->enabled) {
@@ -253,6 +260,10 @@ std::vector<Ship*> Ship::getShipsInRadius(std::vector<Ship*> &ships) {
                 returnList.push_back(ship2);
             }
         }
+    }
+    if (this->allowCpuLoadReduction) {
+        this->prevCloseShips = returnList;
+        this->canUseBuffer = true;
     }
     return returnList;
 }

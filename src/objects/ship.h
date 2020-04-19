@@ -41,6 +41,10 @@ private:
     const float laserViewDistance = 100.0f;
     float laserRefraction = std::min(minLaserRefraction*5.0f, 5.0f); // Delay first laser
 
+    bool allowCpuLoadReduction = false; // Trades off performance vs correctness
+    std::vector<Ship*> prevCloseShips;
+    bool canUseBuffer;
+
 public:
     glm::vec3 acceleration = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 velocity = glm::vec3(1.0f, 1.0f, 1.0f);
